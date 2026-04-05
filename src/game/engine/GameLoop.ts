@@ -10,6 +10,7 @@ import {
   Particle,
   DebugState,
   FloatingText,
+  ScoreEntry,
 } from '../types';
 import { InputManager } from './InputManager';
 import { checkCollision, checkCollisionWithHitbox, isOutOfBounds } from './CollisionSystem';
@@ -50,6 +51,19 @@ export class Game {
   stageTransitionTimer = 0;
   stageTransitionPhase: 'none' | 'clear' | 'name' | 'go' = 'none';
 
+  // Combo system
+  comboCount = 0;
+  comboTimer = 0;
+  maxCombo = 0;
+  comboDisplayTimer = 0;
+
+  // Scoreboard
+  scoreBoard: ScoreEntry[] = [];
+  // Name entry state
+  nameChars = [0, 0, 0]; // A=0, B=1, ...Z=25
+  namePos = 0;
+  nameFrom: 'gameOver' | 'victory' = 'gameOver';
+
   debug: DebugState = {
     showHitboxes: false,
     showFps: false,
@@ -75,6 +89,8 @@ export class Game {
     try {
       const saved = localStorage.getItem('2045_highscore');
       if (saved) this.highScore = parseInt(saved, 10);
+      const board = localStorage.getItem('2045_scoreboard');
+      if (board) this.scoreBoard = JSON.parse(board);
     } catch { /* ignore */ }
   }
 
@@ -122,6 +138,9 @@ export class Game {
       case 'victory':
         this.updateVictory();
         break;
+      case 'enterName':
+        this.updateEnterName();
+        break;
     }
 
     this.render();
@@ -135,6 +154,7 @@ export class Game {
     if (this.input.wasPressed('F4')) { this.stageManager.skipToStage(2); this.startGame(); }
     if (this.input.wasPressed('F5')) this.debug.invincible = !this.debug.invincible;
     if (this.input.wasPressed('F6')) this.debug.showObjectCount = !this.debug.showObjectCount;
+    if (this.input.wasPressed('KeyM')) this.sound.toggleMute();
   }
 
   private startGame() {
@@ -150,6 +170,10 @@ export class Game {
     this.bombActive = false;
     this.bombTimer = 0;
     this.screenShake = 0;
+    this.comboCount = 0;
+    this.comboTimer = 0;
+    this.maxCombo = 0;
+    this.comboDisplayTimer = 0;
     this.stageManager.reset();
   }
 
@@ -204,7 +228,10 @@ export class Game {
         e.hp -= 5;
         if (e.hp <= 0) {
           e.active = false;
-          this.player.score += e.score;
+          this.comboCount++;
+          this.comboTimer = 2.0;
+          if (this.comboCount > this.maxCombo) this.maxCombo = this.comboCount;
+          this.player.score += Math.floor(e.score * this.getComboMultiplier());
           this.spawnExplosion(e.x + e.width / 2, e.y + e.height / 2, e.type.color);
         }
       }
@@ -284,6 +311,15 @@ export class Game {
     }
     this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0);
 
+    // Combo timer decay
+    if (this.comboTimer > 0) {
+      this.comboTimer -= dt;
+      if (this.comboTimer <= 0) {
+        this.comboCount = 0;
+      }
+    }
+    if (this.comboDisplayTimer > 0) this.comboDisplayTimer -= dt;
+
     // === COLLISION ===
     this.handleCollisions();
 
@@ -296,7 +332,8 @@ export class Game {
 
     // Check boss death
     if (this.boss && this.boss.hp <= 0) {
-      this.player.score += this.boss.score;
+      const bossMult = this.getComboMultiplier();
+      this.player.score += Math.floor(this.boss.score * bossMult);
       this.spawnBigExplosion(this.boss.x + this.boss.width / 2, this.boss.y + this.boss.height / 2);
       this.sound.playBossExplosion();
       this.screenShake = 1;
@@ -333,7 +370,20 @@ export class Game {
           enemy.hitFlash = 0.08;
           if (enemy.hp <= 0) {
             enemy.active = false;
-            this.player.score += enemy.score;
+            // Combo system
+            this.comboCount++;
+            this.comboTimer = 2.0;
+            this.comboDisplayTimer = 1.5;
+            if (this.comboCount > this.maxCombo) this.maxCombo = this.comboCount;
+            const comboMult = this.getComboMultiplier();
+            const earnedScore = Math.floor(enemy.score * comboMult);
+            this.player.score += earnedScore;
+            if (comboMult > 1) {
+              this.spawnFloatingText(
+                enemy.x + enemy.width / 2, enemy.y + enemy.height / 2 - 15,
+                `x${comboMult.toFixed(1)}`, '#ffff00'
+              );
+            }
             this.spawnExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.type.color);
             this.sound.playExplosion();
             // Item drop (12% chance)
@@ -497,8 +547,12 @@ export class Game {
   // ===== GAME OVER =====
   private updateGameOver() {
     if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
-      this.stageManager.restartFromBeginning();
-      this.startGame();
+      if (this.isScoreTopTen()) {
+        this.enterNameEntry('gameOver');
+      } else {
+        this.stageManager.restartFromBeginning();
+        this.startGame();
+      }
     }
     if (this.input.wasPressed('Escape')) {
       this.clearAllObjects();
@@ -509,9 +563,102 @@ export class Game {
   // ===== VICTORY =====
   private updateVictory() {
     if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
+      if (this.isScoreTopTen()) {
+        this.enterNameEntry('victory');
+      } else {
+        this.clearAllObjects();
+        this.state = 'menu';
+      }
+    }
+  }
+
+  // ===== NAME ENTRY =====
+  private enterNameEntry(from: 'gameOver' | 'victory') {
+    this.nameFrom = from;
+    this.nameChars = [0, 0, 0];
+    this.namePos = 0;
+    this.state = 'enterName';
+  }
+
+  private updateEnterName() {
+    // Keyboard controls
+    if (this.input.wasPressed('ArrowLeft') || this.input.wasPressed('KeyA')) {
+      this.namePos = Math.max(0, this.namePos - 1);
+    }
+    if (this.input.wasPressed('ArrowRight') || this.input.wasPressed('KeyD')) {
+      this.namePos = Math.min(2, this.namePos + 1);
+    }
+    if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
+      this.nameChars[this.namePos] = (this.nameChars[this.namePos] + 1) % 26;
+    }
+    if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
+      this.nameChars[this.namePos] = (this.nameChars[this.namePos] + 25) % 26;
+    }
+    // Mobile: each tap cycles current letter, then advances
+    if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
+      if (this.namePos < 2) {
+        this.namePos++;
+      } else {
+        this.confirmName();
+      }
+    }
+    // Mobile touch: use joystick Y for letter change
+    if (this.input.isMobile && this.input.hasJoystick) {
+      const joy = this.input.joystickPos;
+      if (joy) {
+        const dy = joy.currentY - joy.startY;
+        if (dy < -20) {
+          this.nameChars[this.namePos] = (this.nameChars[this.namePos] + 1) % 26;
+          // Reset joystick to prevent rapid scroll
+          joy.startY = joy.currentY;
+        } else if (dy > 20) {
+          this.nameChars[this.namePos] = (this.nameChars[this.namePos] + 25) % 26;
+          joy.startY = joy.currentY;
+        }
+      }
+    }
+  }
+
+  private confirmName() {
+    const name = this.nameChars.map(c => String.fromCharCode(65 + c)).join('');
+    this.addScoreEntry(name);
+    if (this.nameFrom === 'gameOver') {
+      this.stageManager.restartFromBeginning();
+      this.startGame();
+    } else {
       this.clearAllObjects();
       this.state = 'menu';
     }
+  }
+
+  private isScoreTopTen(): boolean {
+    if (this.scoreBoard.length < 10) return true;
+    return this.player.score > this.scoreBoard[this.scoreBoard.length - 1].score;
+  }
+
+  private addScoreEntry(name: string) {
+    const entry: ScoreEntry = {
+      name,
+      score: this.player.score,
+      stage: this.stageManager.currentStageIndex + 1,
+      combo: this.maxCombo,
+      date: new Date().toLocaleDateString(),
+    };
+    this.scoreBoard.push(entry);
+    this.scoreBoard.sort((a, b) => b.score - a.score);
+    this.scoreBoard = this.scoreBoard.slice(0, 10);
+    try {
+      localStorage.setItem('2045_scoreboard', JSON.stringify(this.scoreBoard));
+    } catch { /* ignore */ }
+  }
+
+  private getComboMultiplier(): number {
+    if (this.comboCount < 5) return 1.0;
+    if (this.comboCount < 10) return 1.5;
+    if (this.comboCount < 20) return 2.0;
+    if (this.comboCount < 30) return 3.0;
+    if (this.comboCount < 50) return 4.0;
+    return 5.0;
   }
 
   private clearAllObjects() {
@@ -572,6 +719,9 @@ export class Game {
       case 'victory':
         this.renderGameWorld(ctx);
         break;
+      case 'enterName':
+        this.renderGameWorld(ctx);
+        break;
     }
 
     // Bomb flash (inside shake scope is fine - it covers full screen)
@@ -602,6 +752,10 @@ export class Game {
       case 'victory':
         this.renderHUD(ctx);
         this.renderVictory(ctx);
+        break;
+      case 'enterName':
+        this.renderHUD(ctx);
+        this.renderEnterName(ctx);
         break;
     }
 
@@ -666,12 +820,34 @@ export class Game {
       ctx.fillText('P / ESC - PAUSE  |  AUTO SHOOT', cx, cy + 126);
     }
 
-    // High score
-    if (this.highScore > 0) {
+    // Scoreboard
+    if (this.scoreBoard.length > 0) {
+      ctx.fillStyle = '#ffaa00';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText('─── TOP SCORES ───', cx, cy + 160);
+
+      const maxShow = Math.min(this.scoreBoard.length, 5);
+      for (let i = 0; i < maxShow; i++) {
+        const entry = this.scoreBoard[i];
+        const y = cy + 180 + i * 18;
+        ctx.fillStyle = i === 0 ? '#ffcc00' : '#99886e';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          `${(i + 1).toString().padStart(2, ' ')}. ${entry.name}  ${entry.score.toLocaleString().padStart(10, ' ')}  ST${entry.stage}`,
+          cx, y
+        );
+      }
+    } else if (this.highScore > 0) {
       ctx.fillStyle = '#ffaa00';
       ctx.font = '14px monospace';
       ctx.fillText(`HIGH SCORE: ${this.highScore.toLocaleString()}`, cx, cy + 165);
     }
+
+    // Sound indicator
+    ctx.fillStyle = '#334455';
+    ctx.font = '11px monospace';
+    ctx.fillText(this.sound.muted ? '[M] SOUND OFF' : '[M] SOUND ON', cx, this.height - 30);
 
     ctx.restore();
   }
@@ -798,6 +974,135 @@ export class Game {
     ctx.fillStyle = '#00ccff';
     ctx.font = '10px monospace';
     ctx.fillText(`PWR ${this.player.power}/4`, 10, 70);
+
+    // Sound mute indicator
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#555';
+    ctx.font = '10px monospace';
+    ctx.fillText(this.sound.muted ? 'MUTE [M]' : 'SND [M]', this.width - 10, 34);
+
+    // Combo display
+    if (this.comboDisplayTimer > 0 && this.comboCount >= 3) {
+      const comboAlpha = Math.min(this.comboDisplayTimer / 0.5, 1.0);
+      ctx.save();
+      ctx.globalAlpha = comboAlpha;
+      ctx.textAlign = 'right';
+      ctx.font = 'bold 18px monospace';
+      ctx.fillStyle = this.comboCount >= 20 ? '#ff4444' : this.comboCount >= 10 ? '#ffaa00' : '#ffff00';
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 8;
+      ctx.fillText(`${this.comboCount} COMBO`, this.width - 10, 56);
+      const mult = this.getComboMultiplier();
+      if (mult > 1) {
+        ctx.font = '12px monospace';
+        ctx.fillText(`x${mult.toFixed(1)}`, this.width - 10, 72);
+      }
+      ctx.restore();
+    }
+
+    // Boss HP bar (top center, stable layer)
+    if (this.boss && this.boss.active) {
+      const bossBarW = this.width - 80;
+      const bossBarX = 40;
+      const bossBarY = 82;
+      const bossBarH = 8;
+
+      ctx.save();
+      // Boss name
+      ctx.textAlign = 'center';
+      ctx.fillStyle = this.boss.color;
+      ctx.font = 'bold 11px monospace';
+      ctx.shadowColor = this.boss.color;
+      ctx.shadowBlur = 6;
+      ctx.fillText(this.boss.name, this.width / 2, bossBarY - 4);
+      ctx.shadowBlur = 0;
+
+      // Bar background
+      ctx.fillStyle = '#222';
+      ctx.fillRect(bossBarX, bossBarY, bossBarW, bossBarH);
+
+      // Bar fill
+      const bossHpRatio = Math.max(0, this.boss.hp / this.boss.maxHp);
+      const bossHpColor = bossHpRatio > 0.5 ? this.boss.color : bossHpRatio > 0.25 ? '#ffaa00' : '#ff0000';
+      ctx.fillStyle = bossHpColor;
+      ctx.fillRect(bossBarX, bossBarY, bossBarW * bossHpRatio, bossBarH);
+
+      // Bar border
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bossBarX, bossBarY, bossBarW, bossBarH);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  private renderEnterName(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    const cx = this.width / 2;
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    ctx.shadowColor = '#ffaa00';
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = 'bold 24px monospace';
+    ctx.fillText('NEW HIGH SCORE!', cx, this.height / 2 - 80);
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px monospace';
+    ctx.fillText(`${this.player.score.toLocaleString()}`, cx, this.height / 2 - 50);
+
+    ctx.fillStyle = '#888';
+    ctx.font = '14px monospace';
+    ctx.fillText('ENTER YOUR NAME', cx, this.height / 2 - 15);
+
+    // Draw 3 letter slots
+    const slotW = 40;
+    const slotGap = 10;
+    const startX = cx - (slotW * 3 + slotGap * 2) / 2;
+
+    for (let i = 0; i < 3; i++) {
+      const x = startX + i * (slotW + slotGap);
+      const y = this.height / 2 + 10;
+      const letter = String.fromCharCode(65 + this.nameChars[i]);
+      const isActive = i === this.namePos;
+
+      // Slot background
+      ctx.fillStyle = isActive ? '#003366' : '#111122';
+      ctx.fillRect(x, y, slotW, 50);
+      ctx.strokeStyle = isActive ? '#00ccff' : '#333';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, slotW, 50);
+
+      // Arrow hints
+      if (isActive) {
+        ctx.fillStyle = '#00ccff';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('▲', x + slotW / 2, y - 4);
+        ctx.fillText('▼', x + slotW / 2, y + 64);
+      }
+
+      // Letter
+      ctx.fillStyle = isActive ? '#00ccff' : '#ffffff';
+      ctx.font = 'bold 32px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(letter, x + slotW / 2, y + 37);
+    }
+
+    // Instructions
+    ctx.fillStyle = '#556';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'center';
+    if (this.input.isMobile) {
+      ctx.fillText('TAP TO CONFIRM LETTER', cx, this.height / 2 + 95);
+    } else {
+      ctx.fillText('↑↓ CHANGE  ←→ MOVE  SPACE CONFIRM', cx, this.height / 2 + 95);
+    }
 
     ctx.restore();
   }

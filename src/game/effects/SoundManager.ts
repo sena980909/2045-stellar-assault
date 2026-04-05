@@ -4,6 +4,7 @@ export class SoundManager {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private initialized = false;
+  muted = false;
 
   init() {
     if (this.initialized) return;
@@ -13,9 +14,23 @@ export class SoundManager {
       this.masterGain.gain.value = 0.3;
       this.masterGain.connect(this.ctx.destination);
       this.initialized = true;
+      // Restore mute state
+      try {
+        this.muted = localStorage.getItem('2045_muted') === '1';
+        if (this.muted) this.masterGain.gain.value = 0;
+      } catch { /* ignore */ }
     } catch {
       console.warn('Web Audio not supported');
     }
+  }
+
+  toggleMute(): boolean {
+    this.muted = !this.muted;
+    if (this.masterGain) {
+      this.masterGain.gain.value = this.muted ? 0 : 0.3;
+    }
+    try { localStorage.setItem('2045_muted', this.muted ? '1' : '0'); } catch { /* ignore */ }
+    return this.muted;
   }
 
   private ensureContext() {
