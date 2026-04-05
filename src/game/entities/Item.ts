@@ -21,7 +21,7 @@ export function createItem(x: number, y: number, type: ItemType): ItemData {
     width: 20,
     height: 20,
     type,
-    vy: 80,
+    vy: 55,
     active: true,
   };
 }

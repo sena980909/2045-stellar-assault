@@ -437,9 +437,21 @@ export class Game {
       // Player bullets vs boss
       if (bullet.active && this.boss && this.boss.active && !this.boss.entering && checkCollision(bullet, this.boss)) {
         bullet.active = false;
+        const prevHpRatio = this.boss.hp / this.boss.maxHp;
         this.boss.hp -= bullet.damage;
         this.boss.hitFlash = 0.08;
         this.particles.push(...createParticles(bullet.x, bullet.y, 4, '#ffffff'));
+        // Drop item at every 20% HP threshold
+        if (this.boss.hp > 0) {
+          const newHpRatio = this.boss.hp / this.boss.maxHp;
+          if (Math.floor(prevHpRatio * 5) > Math.floor(newHpRatio * 5)) {
+            this.items.push(createItem(
+              this.boss.x + this.boss.width / 2 + (Math.random() - 0.5) * 40,
+              this.boss.y + this.boss.height,
+              this.getItemType()
+            ));
+          }
+        }
       }
     }
 
