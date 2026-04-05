@@ -452,7 +452,7 @@ export class Game {
         if (this.boss.hp > 0) {
           const newHpRatio = this.boss.hp / this.boss.maxHp;
           if (Math.floor(prevHpRatio * 7) > Math.floor(newHpRatio * 7)) {
-            const itemType = this.player.power <= 2 ? 'power' as const : this.getItemType();
+            const itemType = this.player.power <= 1 ? 'power' as const : this.getItemType();
             this.items.push(createItem(
               this.boss.x + this.boss.width / 2 + (Math.random() - 0.5) * 40,
               this.boss.y + this.boss.height,
