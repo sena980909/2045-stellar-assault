@@ -111,7 +111,7 @@ export function killPlayer(player: PlayerState, canvasWidth: number, canvasHeigh
     return true; // game over
   }
   // Respawn: partial power reset, keep score/bombs, become invincible
-  player.power = Math.max(player.power - 1, 1); // lose 1 level, min 1
+  player.power = 1; // reset to base power on death
   player.speed = 4.5;
   player.x = canvasWidth / 2 - player.width / 2;
   player.y = canvasHeight - 80;
