@@ -194,7 +194,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: EnemyData, time:
     ctx.stroke();
     // Hit flash
     if (enemy.hitFlash > 0) {
-      ctx.globalAlpha = enemy.hitFlash * 10;
+      ctx.globalAlpha = Math.min(enemy.hitFlash * 10, 1.0);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.globalAlpha = 1;
@@ -215,7 +215,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: EnemyData, time:
     ctx.stroke();
     // Hit flash
     if (enemy.hitFlash > 0) {
-      ctx.globalAlpha = enemy.hitFlash * 10;
+      ctx.globalAlpha = Math.min(enemy.hitFlash * 10, 1.0);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.globalAlpha = 1;

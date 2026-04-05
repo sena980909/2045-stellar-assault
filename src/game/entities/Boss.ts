@@ -227,7 +227,7 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossData, time: nu
 
   // Hit flash overlay
   if (boss.hitFlash > 0) {
-    ctx.globalAlpha = boss.hitFlash * 10;
+    ctx.globalAlpha = Math.min(boss.hitFlash * 10, 1.0);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.globalAlpha = 1;

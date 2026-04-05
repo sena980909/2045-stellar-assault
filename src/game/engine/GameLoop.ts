@@ -536,9 +536,14 @@ export class Game {
   // ===== RENDER =====
   private render() {
     const ctx = this.ctx;
-    ctx.save();
 
-    // Screen shake
+    // === Shaken layer: game world only ===
+    ctx.save();
+    // Clip to canvas bounds so shake never bleeds outside
+    ctx.beginPath();
+    ctx.rect(0, 0, this.width, this.height);
+    ctx.clip();
+
     if (this.screenShake > 0) {
       const shakeX = (Math.random() - 0.5) * this.screenShake * 10;
       const shakeY = (Math.random() - 0.5) * this.screenShake * 10;
@@ -554,30 +559,51 @@ export class Game {
         break;
       case 'playing':
       case 'paused':
-        this.renderGame(ctx);
+        this.renderGameWorld(ctx);
+        break;
+      case 'stageClear':
+        this.renderGameWorld(ctx);
+        break;
+      case 'gameOver':
+        this.renderGameWorld(ctx);
+        break;
+      case 'victory':
+        this.renderGameWorld(ctx);
+        break;
+    }
+
+    // Bomb flash (inside shake scope is fine - it covers full screen)
+    if (this.bombActive) {
+      const bombAlpha = Math.pow(this.bombTimer / 0.8, 2) * 0.3;
+      ctx.fillStyle = `rgba(255, 255, 255, ${bombAlpha})`;
+      ctx.fillRect(-10, -10, this.width + 20, this.height + 20);
+    }
+
+    ctx.restore();
+    // === End shaken layer ===
+
+    // === Stable UI layer: no shake applied ===
+    switch (this.state) {
+      case 'playing':
+      case 'paused':
+        this.renderHUD(ctx);
         if (this.state === 'paused') this.renderPause(ctx);
         break;
       case 'stageClear':
-        this.renderGame(ctx);
+        this.renderHUD(ctx);
         this.renderStageClear(ctx);
         break;
       case 'gameOver':
-        this.renderGame(ctx);
+        this.renderHUD(ctx);
         this.renderGameOver(ctx);
         break;
       case 'victory':
-        this.renderGame(ctx);
+        this.renderHUD(ctx);
         this.renderVictory(ctx);
         break;
     }
 
-    // Bomb flash
-    if (this.bombActive) {
-      ctx.fillStyle = `rgba(255, 255, 255, ${this.bombTimer * 0.5})`;
-      ctx.fillRect(0, 0, this.width, this.height);
-    }
-
-    // Debug info
+    // Debug info (stable, no shake)
     if (this.debug.showFps) {
       ctx.fillStyle = '#666';
       ctx.font = '10px monospace';
@@ -590,8 +616,6 @@ export class Game {
       ctx.textAlign = 'left';
       ctx.fillText(`B:${this.bullets.length} E:${this.enemies.length} P:${this.particles.length}`, 5, this.height - 18);
     }
-
-    ctx.restore();
   }
 
   private renderMenu(ctx: CanvasRenderingContext2D) {
@@ -644,7 +668,7 @@ export class Game {
     ctx.restore();
   }
 
-  private renderGame(ctx: CanvasRenderingContext2D) {
+  private renderGameWorld(ctx: CanvasRenderingContext2D) {
     // Items
     for (const item of this.items) {
       if (item.active) drawItem(ctx, item, this.time);
@@ -683,40 +707,41 @@ export class Game {
     // Floating texts
     for (const ft of this.floatingTexts) {
       const alpha = ft.life / ft.maxLife;
+      const scale = 1 + (1 - alpha) * 0.3;
       ctx.save();
       ctx.globalAlpha = alpha;
+      ctx.translate(ft.x, ft.y);
+      ctx.scale(scale, scale);
       ctx.fillStyle = ft.color;
       ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
       ctx.shadowColor = ft.color;
       ctx.shadowBlur = 6;
-      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.fillText(ft.text, 0, 0);
       ctx.restore();
     }
 
     // Debug hitboxes
     if (this.debug.showHitboxes) {
+      ctx.save();
       const hitbox = getPlayerHitbox(this.player);
       ctx.strokeStyle = '#00ff00';
       ctx.lineWidth = 1;
       ctx.strokeRect(this.player.x, this.player.y, this.player.width, this.player.height);
-      // Actual collision hitbox in yellow
       ctx.strokeStyle = '#ffff00';
       ctx.strokeRect(hitbox.x, hitbox.y, hitbox.width, hitbox.height);
       for (const e of this.enemies) {
-        if (e.active) ctx.strokeRect(e.x, e.y, e.width, e.height);
+        if (e.active) { ctx.strokeStyle = '#ff4444'; ctx.strokeRect(e.x, e.y, e.width, e.height); }
       }
       for (const b of this.bullets) {
-        if (b.active) ctx.strokeRect(b.x, b.y, b.width, b.height);
+        if (b.active) { ctx.strokeStyle = b.isPlayer ? '#00ff00' : '#ff6600'; ctx.strokeRect(b.x, b.y, b.width, b.height); }
       }
-      if (this.boss?.active) ctx.strokeRect(this.boss.x, this.boss.y, this.boss.width, this.boss.height);
+      if (this.boss?.active) { ctx.strokeStyle = '#ff00ff'; ctx.strokeRect(this.boss.x, this.boss.y, this.boss.width, this.boss.height); }
       for (const i of this.items) {
-        if (i.active) ctx.strokeRect(i.x, i.y, i.width, i.height);
+        if (i.active) { ctx.strokeStyle = '#00ffff'; ctx.strokeRect(i.x, i.y, i.width, i.height); }
       }
+      ctx.restore();
     }
-
-    // HUD
-    this.renderHUD(ctx);
   }
 
   private renderHUD(ctx: CanvasRenderingContext2D) {
