@@ -237,7 +237,7 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossData, time: nu
   ctx.fillStyle = '#222';
   ctx.fillRect(barX, barY, barWidth, 6);
 
-  const hpRatio = boss.hp / boss.maxHp;
+  const hpRatio = Math.max(0, boss.hp / boss.maxHp);
   const hpColor = hpRatio > 0.5 ? boss.color : hpRatio > 0.25 ? '#ffaa00' : '#ff0000';
   ctx.fillStyle = hpColor;
   ctx.fillRect(barX, barY, barWidth * hpRatio, 6);

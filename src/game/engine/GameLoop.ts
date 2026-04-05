@@ -53,6 +53,7 @@ export class Game {
   stageTransitionTimer = 0;
   stageTransitionPhase: 'none' | 'clear' | 'name' | 'go' = 'none';
   slowMo = 0;
+  bossWarningTimer = 0;
 
   // Combo system
   comboCount = 0;
@@ -208,7 +209,8 @@ export class Game {
 
   // ===== PLAYING =====
   private updatePlaying(dt: number) {
-    if (this.input.wasPressed('Escape') || this.input.wasPressed('KeyP')) {
+    if (this.input.wasPressed('Escape') || this.input.wasPressed('KeyP') || this.input.touchPause) {
+      if (this.input.touchPause) this.input.touchPause = false;
       this.state = 'paused';
       this.sound.playPause();
       this.sound.pauseBgm();
@@ -216,6 +218,9 @@ export class Game {
     }
 
     this.bg.update(dt, this.stageManager.currentStage.starSpeed);
+
+    // Boss warning timer
+    if (this.bossWarningTimer > 0) this.bossWarningTimer -= dt;
 
     // Player
     if (this.debug.invincible) {
@@ -285,6 +290,7 @@ export class Game {
     if (stageResult.spawnBoss && !this.boss) {
       this.boss = createBoss(this.stageManager.currentStage.boss, this.width);
       if (diff?.bossHpMultiplier) { this.boss.hp = Math.round(this.boss.hp * diff.bossHpMultiplier); this.boss.maxHp = this.boss.hp; }
+      this.bossWarningTimer = 2.5;
       this.sound.playBossWarning();
       this.sound.startBgm('boss');
     }
@@ -473,7 +479,14 @@ export class Game {
         if (!enemy.active) continue;
         if (checkCollisionWithHitbox(enemy, playerHitbox)) {
           enemy.active = false;
+          this.player.score += enemy.score;
           this.spawnExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.type.color);
+          // Drop item on collision kill
+          const dropCfg = this.stageManager.currentStage.itemDrop;
+          const dropChance = dropCfg?.dropChance ?? 0.12;
+          if (Math.random() < dropChance) {
+            this.items.push(createItem(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, this.getItemType()));
+          }
           this.onPlayerDeath();
           return;
         }
@@ -570,9 +583,11 @@ export class Game {
 
   // ===== PAUSED =====
   private updatePaused() {
-    if (this.input.wasPressed('Escape') || this.input.wasPressed('KeyP') || this.input.wasPressed('Space')) {
+    if (this.input.wasPressed('Escape') || this.input.wasPressed('KeyP') || this.input.wasPressed('Space') || this.input.touchPause) {
+      if (this.input.touchPause) this.input.touchPause = false;
       this.state = 'playing';
       this.sound.playPause();
+      this.sound.resumeBgm();
     }
   }
 
@@ -582,6 +597,9 @@ export class Game {
     this.stageTransitionTimer += dt;
 
     if (this.stageTransitionTimer > 3) {
+      // Stage clear bonus: 5000 × stageNumber
+      const clearBonus = 5000 * (this.stageManager.currentStageIndex + 1);
+      this.player.score += clearBonus;
       this.player.bombs = Math.min(this.player.bombs + 1, 4);
       this.stageManager.nextStage();
       // Register new stage's custom enemy types

@@ -41,6 +41,9 @@ export class InputManager {
   // Focus: above bomb, bigger for easy hold
   readonly focusBtn = { x: 400 - 55, y: 700 - 145, r: 30 };
   readonly muteBtn = { x: 400 - 25, y: 30, r: 16 };
+  // Pause: top-left area
+  readonly pauseBtn = { x: 30, y: 90, r: 16 };
+  touchPause = false;
 
   init(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -92,6 +95,13 @@ export class InputManager {
         // Check mute button (top right)
         if (this.hitCircle(gx, gy, this.muteBtn)) {
           this.touchMute = true;
+          hitButton = true;
+          continue;
+        }
+
+        // Check pause button (top left)
+        if (this.hitCircle(gx, gy, this.pauseBtn)) {
+          this.touchPause = true;
           hitButton = true;
           continue;
         }

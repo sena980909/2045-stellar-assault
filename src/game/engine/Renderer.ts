@@ -87,6 +87,22 @@ export function render(game: Game) {
   // Mobile virtual controls
   if (game.state === 'playing') {
     game.input.drawMobileUI(ctx, game.time);
+    // Mobile pause button
+    if (game.input.isMobile) {
+      const pb = game.input.pauseBtn;
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = '#336';
+      ctx.beginPath();
+      ctx.arc(pb.x, pb.y, pb.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('II', pb.x, pb.y);
+      ctx.globalAlpha = 1;
+    }
   }
 
   // Debug info
@@ -208,6 +224,36 @@ function renderGameWorld(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.shadowColor = ft.color;
     ctx.shadowBlur = 6;
     ctx.fillText(ft.text, 0, 0);
+    ctx.restore();
+  }
+
+  // Boss warning overlay
+  if (game.bossWarningTimer > 0) {
+    const t = game.bossWarningTimer;
+    const flash = Math.sin(game.time * 12) * 0.5 + 0.5;
+    ctx.save();
+    // Red vignette
+    ctx.globalAlpha = Math.min(t * 0.4, 0.3) * flash;
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(0, 0, 400, 700);
+    // WARNING text
+    ctx.globalAlpha = Math.min(t, 1.0);
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 20 + flash * 15;
+    ctx.fillStyle = '#ff2222';
+    ctx.font = 'bold 48px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const shake = t > 1.5 ? (Math.random() - 0.5) * 4 : 0;
+    ctx.fillText('⚠ WARNING ⚠', 200 + shake, 300 + shake);
+    // Boss name subtitle
+    if (game.boss && t < 2.0) {
+      ctx.globalAlpha = Math.min((2.0 - t) * 2, 1.0) * 0.9;
+      ctx.font = 'bold 18px monospace';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#ffaa00';
+      ctx.fillText(game.boss.name, 200, 345);
+    }
     ctx.restore();
   }
 
@@ -465,9 +511,12 @@ function renderStageClear(game: Game, ctx: CanvasRenderingContext2D) {
   ctx.fillText(`SCORE: ${game.player.score.toLocaleString()}`, game.width / 2, game.height / 2 + 10);
 
   if (game.stageTransitionTimer > 1.0) {
-    ctx.fillStyle = '#00ccff';
+    const clearBonus = 5000 * (game.stageManager.currentStageIndex + 1);
+    ctx.fillStyle = '#ffcc00';
     ctx.font = '12px monospace';
-    ctx.fillText('+1 BOMB', game.width / 2, game.height / 2 + 35);
+    ctx.fillText(`CLEAR BONUS +${clearBonus.toLocaleString()}`, game.width / 2, game.height / 2 + 32);
+    ctx.fillStyle = '#00ccff';
+    ctx.fillText('+1 BOMB', game.width / 2, game.height / 2 + 48);
   }
 
   if (game.stageTransitionTimer > 1.5) {

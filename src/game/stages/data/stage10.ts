@@ -203,7 +203,7 @@ const stage10: StageDefinition = {
     hp: 2500,
     width: 110,
     height: 80,
-    score: 50000,
+    score: 100000,
     color: '#ff0000',
     glowColor: '#cc0000',
     enterY: 40,
