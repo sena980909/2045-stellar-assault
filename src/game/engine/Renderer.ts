@@ -206,7 +206,7 @@ function renderGameWorld(game: Game, ctx: CanvasRenderingContext2D) {
   if (game.boss && game.boss.active) {
     drawBoss(ctx, game.boss, game.time);
   }
-  if (game.state !== 'gameOver' && !game.respawning) {
+  if (game.state !== 'gameOver') {
     drawPlayer(ctx, game.player, game.time);
   }
 
@@ -295,31 +295,39 @@ function renderHUD(game: Game, ctx: CanvasRenderingContext2D) {
   ctx.font = '12px monospace';
   ctx.fillText(`${game.stageManager.currentStage.name}`, game.width - 10, 20);
 
-  // Lives display
-  const isLastLife = game.player.lives === 1;
-  ctx.fillStyle = isLastLife ? '#ff4444' : '#00ff88';
-  ctx.font = '12px monospace';
+  // HP bar
+  const hpRatio = game.player.hp / game.player.maxHp;
+  const isLowHp = hpRatio <= 0.3;
+  ctx.fillStyle = '#888';
+  ctx.font = '10px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText('LIVES', 10, 38);
-  for (let i = 0; i < game.player.lives; i++) {
-    const lx = 60 + i * 20;
-    const ly = 32;
-    ctx.fillStyle = isLastLife ? '#ff4444' : '#00ccff';
-    ctx.beginPath();
-    ctx.moveTo(lx, ly - 6);
-    ctx.lineTo(lx + 6, ly + 6);
-    ctx.lineTo(lx, ly + 3);
-    ctx.lineTo(lx - 6, ly + 6);
-    ctx.closePath();
-    ctx.fill();
-  }
-  if (isLastLife && Math.floor(game.time * 3) % 2 === 0) {
+  ctx.fillText('HP', 10, 38);
+  // Bar background
+  ctx.fillStyle = '#333';
+  ctx.fillRect(28, 30, 80, 10);
+  // Bar fill
+  const hpColor = hpRatio > 0.5 ? '#00ff88' : hpRatio > 0.3 ? '#ffaa00' : '#ff4444';
+  ctx.fillStyle = hpColor;
+  ctx.fillRect(28, 30, 80 * hpRatio, 10);
+  // Bar border
+  ctx.strokeStyle = '#666';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(28, 30, 80, 10);
+  // HP text
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${game.player.hp}/${game.player.maxHp}`, 68, 39);
+  // Low HP warning
+  if (isLowHp && Math.floor(game.time * 4) % 2 === 0) {
     ctx.fillStyle = '#ff4444';
     ctx.font = 'bold 10px monospace';
-    ctx.fillText('DANGER!', 110, 38);
+    ctx.textAlign = 'left';
+    ctx.fillText('DANGER!', 115, 39);
   }
 
   // Bombs
+  ctx.textAlign = 'left';
   ctx.fillStyle = '#ff4444';
   ctx.font = '14px monospace';
   for (let i = 0; i < game.player.bombs; i++) {
@@ -329,7 +337,7 @@ function renderHUD(game: Game, ctx: CanvasRenderingContext2D) {
   // Power level
   ctx.fillStyle = '#00ccff';
   ctx.font = '10px monospace';
-  ctx.fillText(`PWR ${game.player.power}/4`, 10, 70);
+  ctx.fillText(`PWR ${game.player.power}/5`, 10, 70);
 
   // Sound mute indicator / button
   if (game.input.isMobile) {

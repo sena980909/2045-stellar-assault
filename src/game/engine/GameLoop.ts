@@ -54,8 +54,6 @@ export class Game {
   stageTransitionPhase: 'none' | 'clear' | 'name' | 'go' = 'none';
   slowMo = 0;
   bossWarningTimer = 0;
-  respawnTimer = 0;
-  respawning = false;
 
   // Combo system
   comboCount = 0;
@@ -183,8 +181,6 @@ export class Game {
     this.bombActive = false;
     this.bombTimer = 0;
     this.screenShake = 0;
-    this.respawning = false;
-    this.respawnTimer = 0;
     this.comboCount = 0;
     this.comboTimer = 0;
     this.maxCombo = 0;
@@ -226,30 +222,14 @@ export class Game {
     // Boss warning timer
     if (this.bossWarningTimer > 0) this.bossWarningTimer -= dt;
 
-    // Respawn delay
-    if (this.respawning) {
-      this.respawnTimer -= dt;
-      if (this.respawnTimer <= 0) {
-        this.doRespawn();
-      }
-    }
-
-    // Slide-up after respawn (player starts below screen)
-    if (!this.respawning && this.player.y > this.height - 80) {
-      this.player.y -= 200 * dt; // slide up smoothly
-      if (this.player.y < this.height - 80) this.player.y = this.height - 80;
-    }
-
     // Player
     if (this.debug.invincible) {
       this.player.invincible = true;
       this.player.invincibleTimer = 999;
     }
-    if (!this.respawning) {
-      updatePlayer(this.player, this.input.moveX, this.input.moveY, true, dt, this.width, this.height, this.input.isFocused);
-    }
+    updatePlayer(this.player, this.input.moveX, this.input.moveY, true, dt, this.width, this.height, this.input.isFocused);
 
-    const newBullets = this.respawning ? [] : playerShoot(this.player);
+    const newBullets = playerShoot(this.player);
     if (newBullets.length > 0) {
       this.bullets.push(...newBullets);
       this.sound.playShoot();
@@ -489,7 +469,7 @@ export class Game {
         if (!bullet.active || bullet.isPlayer) continue;
         if (checkCollisionWithHitbox(bullet, playerHitbox)) {
           bullet.active = false;
-          this.onPlayerDeath();
+          this.onPlayerHit();
           return;
         }
       }
@@ -509,7 +489,7 @@ export class Game {
           if (Math.random() < dropChance) {
             this.items.push(createItem(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, this.getItemType()));
           }
-          this.onPlayerDeath();
+          this.onPlayerHit();
           return;
         }
       }
@@ -525,7 +505,7 @@ export class Game {
         const iy = item.y + item.height / 2;
         switch (item.type) {
           case 'power':
-            if (this.player.power >= 4) {
+            if (this.player.power >= 5) {
               this.player.score += 500;
               this.spawnFloatingText(ix, iy, '+500', '#00ffff');
             } else {
@@ -551,6 +531,15 @@ export class Game {
               this.spawnFloatingText(ix, iy, '+SPEED!', '#44ff44');
             }
             break;
+          case 'hp':
+            if (this.player.hp >= this.player.maxHp) {
+              this.player.score += 500;
+              this.spawnFloatingText(ix, iy, '+500', '#ff66aa');
+            } else {
+              this.player.hp = Math.min(this.player.hp + 2, this.player.maxHp);
+              this.spawnFloatingText(ix, iy, '+HP!', '#ff66aa');
+            }
+            break;
         }
       }
     }
@@ -574,50 +563,32 @@ export class Game {
     this.particles.push(...createParticles(x, y, 30, '#ffaa44'));
   }
 
-  // ===== PLAYER DEATH =====
-  private onPlayerDeath() {
+  // ===== PLAYER HIT =====
+  private onPlayerHit() {
     const px = this.player.x + this.player.width / 2;
     const py = this.player.y + this.player.height / 2;
 
-    this.spawnBigExplosion(px, py);
     this.sound.playHit();
-    this.screenShake = 0.5;
-    this.screenFlash = 0.6;
-    this.particles.push(...createParticles(px, py, 15, '#ff4444'));
-    this.sound.playExplosion();
+    this.screenShake = 0.3;
+    this.screenFlash = 0.3;
+    this.particles.push(...createParticles(px, py, 8, '#ff4444'));
 
-    this.player.lives--;
-    if (this.player.lives <= 0) {
-      this.player.lives = 0;
+    this.player.hp--;
+    this.spawnFloatingText(px, py - 20, `-1 HP`, '#ff4444');
+
+    if (this.player.hp <= 0) {
+      this.player.hp = 0;
+      this.spawnBigExplosion(px, py);
+      this.sound.playExplosion();
       this.state = 'gameOver';
       this.saveHighScore();
       this.sound.stopBgm();
       this.sound.playGameOver();
     } else {
-      // Start respawn delay — player is "dead" for 1.2 seconds
-      this.respawning = true;
-      this.respawnTimer = 1.2;
+      // Brief invincibility after hit
       this.player.invincible = true;
-      this.player.invincibleTimer = 99; // stay invincible during respawn
-      // Hide player off-screen during death
-      this.player.x = -999;
-      this.player.y = -999;
-      // Clear enemy bullets to give breathing room
-      for (const b of this.bullets) {
-        if (!b.isPlayer) b.active = false;
-      }
+      this.player.invincibleTimer = 1.5;
     }
-  }
-
-  private doRespawn() {
-    this.respawning = false;
-    this.player.power = 1;
-    this.player.speed = 4.5;
-    this.player.x = this.width / 2 - this.player.width / 2;
-    this.player.y = this.height + 20; // start below screen
-    this.player.invincible = true;
-    this.player.invincibleTimer = 2.5;
-    this.spawnFloatingText(this.width / 2, this.height - 120, 'POWER LOST!', '#ff4444');
   }
 
   // ===== PAUSED =====
@@ -821,11 +792,13 @@ export class Game {
   private getItemType(): import('../types').ItemType {
     const w = this.stageManager.currentStage.itemDrop?.weights;
     if (!w) return randomItemType();
-    const total = w.power + w.bomb + w.speed;
+    const hpW = (w as Record<string, number>).hp ?? 0;
+    const total = w.power + w.bomb + w.speed + hpW;
     const roll = Math.random() * total;
     if (roll < w.power) return 'power';
     if (roll < w.power + w.bomb) return 'bomb';
-    return 'speed';
+    if (roll < w.power + w.bomb + w.speed) return 'speed';
+    return 'hp';
   }
 
   private clearAllObjects() {

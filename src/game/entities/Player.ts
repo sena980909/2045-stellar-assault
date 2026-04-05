@@ -8,7 +8,8 @@ export function createPlayer(canvasWidth: number, canvasHeight: number): PlayerS
     y: canvasHeight - 80,
     width: 32,
     height: 32,
-    lives: 4,
+    hp: 10,
+    maxHp: 10,
     power: 1,
     bombs: 3,
     speed: 4.5,
@@ -62,20 +63,26 @@ export function playerShoot(player: PlayerState): BulletData[] {
   const cx = player.x + player.width / 2;
   const bulletSpeed = -600;
 
-  if (player.power >= 1) {
+  // Power 1-5: one bullet added per level, spread evenly
+  const count = Math.min(player.power, 5);
+  if (count === 1) {
+    // Single center bullet
     bullets.push(createBullet(cx - 3, player.y, 0, bulletSpeed));
-  }
-  if (player.power >= 2) {
-    bullets.push(createBullet(cx - 10, player.y + 5, -20, bulletSpeed));
-    bullets.push(createBullet(cx + 4, player.y + 5, 20, bulletSpeed));
-  }
-  if (player.power >= 3) {
-    bullets.push(createBullet(cx - 16, player.y + 10, -45, bulletSpeed * 0.95));
-    bullets.push(createBullet(cx + 10, player.y + 10, 45, bulletSpeed * 0.95));
-  }
-  if (player.power >= 4) {
-    bullets.push(createBullet(cx - 22, player.y + 8, -75, bulletSpeed * 0.9));
-    bullets.push(createBullet(cx + 16, player.y + 8, 75, bulletSpeed * 0.9));
+  } else {
+    // Spread bullets symmetrically
+    const maxSpread = 60; // total angle spread in px velocity
+    for (let i = 0; i < count; i++) {
+      const t = count === 1 ? 0 : (i / (count - 1)) * 2 - 1; // -1 to 1
+      const vx = t * maxSpread;
+      const yOff = Math.abs(t) * 10; // outer bullets slightly behind
+      const speedScale = 1 - Math.abs(t) * 0.08; // outer bullets slightly slower
+      bullets.push(createBullet(
+        cx - 3 + t * (count * 3),
+        player.y + yOff,
+        vx,
+        bulletSpeed * speedScale
+      ));
+    }
   }
 
   return bullets;
@@ -101,23 +108,6 @@ export function getPlayerHitbox(player: PlayerState): { x: number; y: number; wi
   const cy = player.y + player.height / 2;
   const size = player.focused ? 6 : 12;
   return { x: cx - size / 2, y: cy - size / 2, width: size, height: size };
-}
-
-// Returns true if no lives left (game over)
-export function killPlayer(player: PlayerState, canvasWidth: number, canvasHeight: number): boolean {
-  player.lives--;
-  if (player.lives <= 0) {
-    player.lives = 0;
-    return true; // game over
-  }
-  // Respawn: partial power reset, keep score/bombs, become invincible
-  player.power = 1; // reset to base power on death
-  player.speed = 4.5;
-  player.x = canvasWidth / 2 - player.width / 2;
-  player.y = canvasHeight - 80;
-  player.invincible = true;
-  player.invincibleTimer = 2.5; // longer invincibility on respawn
-  return false;
 }
 
 export function drawPlayer(ctx: CanvasRenderingContext2D, player: PlayerState, time: number) {

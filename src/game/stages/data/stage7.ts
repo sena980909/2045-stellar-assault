@@ -67,7 +67,7 @@ const stage7: StageDefinition = {
   },
   itemDrop: {
     dropChance: 0.15,
-    weights: { power: 4, bomb: 3, speed: 3 },
+    weights: { power: 4, bomb: 3, speed: 2, hp: 3 },
   },
   victoryText: [
     'THE SINGULARITY COLLAPSES.',

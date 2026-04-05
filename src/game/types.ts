@@ -89,7 +89,7 @@ export interface BossData extends Entity {
   hitFlash: number;
 }
 
-export type ItemType = 'power' | 'bomb' | 'speed';
+export type ItemType = 'power' | 'bomb' | 'speed' | 'hp';
 
 export interface ItemData extends Entity {
   type: ItemType;
@@ -123,7 +123,8 @@ export interface PlayerState {
   y: number;
   width: number;
   height: number;
-  lives: number;
+  hp: number;
+  maxHp: number;
   power: number;
   bombs: number;
   speed: number;
@@ -163,7 +164,7 @@ export interface BossTemplate {
 
 export interface ItemDropConfig {
   dropChance: number;
-  weights?: { power: number; bomb: number; speed: number };
+  weights?: { power: number; bomb: number; speed: number; hp?: number };
 }
 
 export interface DifficultyModifiers {
