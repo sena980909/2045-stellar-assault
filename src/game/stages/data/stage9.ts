@@ -29,7 +29,7 @@ registerBossPattern('hive_spawn', (boss, _px, _py, mk) => {
   for (let i = 0; i < 6; i++) {
     const angle = rotation + (Math.PI * 2 * i) / 6;
     const vx = Math.cos(angle) * speed * 0.7;
-    const vy = Math.sin(angle) * speed * 0.5 + 120;
+    const vy = Math.max(60, Math.sin(angle) * speed * 0.5 + 120);
     bullets.push(mk(cx, cy, vx, vy, '#66ff66'));
   }
   return bullets;

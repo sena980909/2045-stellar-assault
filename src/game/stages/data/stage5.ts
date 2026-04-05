@@ -27,10 +27,9 @@ registerBossPattern('freeze', (boss, _px, _py, mk) => {
   const baseAngle = boss.patternTimer * 0.8;
   for (let i = 0; i < count; i++) {
     const angle = baseAngle + (Math.PI * 2 * i) / count;
-    // Start slow (120), the bullet will move outward; we give a slight downward bias
     const speed = 120;
     const vx = Math.cos(angle) * speed;
-    const vy = Math.sin(angle) * speed * 0.6 + 80;
+    const vy = Math.max(80, Math.sin(angle) * speed * 0.6 + 140);
     bullets.push(mk(cx, cy, vx, vy, '#88ccff'));
   }
   return bullets;

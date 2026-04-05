@@ -136,7 +136,7 @@ const stage6: StageDefinition = {
     glowColor: '#ffaa00',
     enterY: 45,
     phases: [
-      { hpThreshold: 1.0, pattern: 'solar_flare', shootInterval: 1.0, speed: 80 },
+      { hpThreshold: 1.0, pattern: 'solar_flare', shootInterval: 0.5, speed: 80 },
       { hpThreshold: 0.6, pattern: 'spread', shootInterval: 0.6, speed: 100 },
       { hpThreshold: 0.3, pattern: 'aimed', shootInterval: 0.3, speed: 140 },
       { hpThreshold: 0.1, pattern: 'fury', shootInterval: 0.18, speed: 170 },

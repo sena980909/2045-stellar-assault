@@ -40,12 +40,15 @@ registerBossPattern('gravity', (boss, px, py, mk) => {
     const spawnX = cx + Math.cos(angle) * ringRadius;
     const spawnY = cy + Math.sin(angle) * ringRadius;
 
-    // Aim toward player
+    // Aim toward player with angular spread so bullets don't all converge on one point
     const dx = (px + 16) - spawnX;
     const dy = (py + 16) - spawnY;
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const baseAngle = Math.atan2(dy, dx);
+    const spread = (i - (ringCount - 1) / 2) * 0.12; // ±0.3 rad (~17 degrees) spread
+    const finalAngle = baseAngle + spread;
 
-    bullets.push(mk(spawnX, spawnY, (dx / dist) * speed, (dy / dist) * speed, '#bb66ff'));
+    bullets.push(mk(spawnX, spawnY, Math.cos(finalAngle) * speed, Math.sin(finalAngle) * speed, '#bb66ff'));
   }
 
   return bullets;

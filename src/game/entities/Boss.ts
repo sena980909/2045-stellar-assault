@@ -38,11 +38,16 @@ export function updateBoss(boss: BossData, dt: number, canvasWidth: number) {
 
   // Update phase - pick the highest index whose threshold we've crossed
   const hpRatio = boss.hp / boss.maxHp;
+  const prevPhase = boss.currentPhase;
   for (let i = boss.phases.length - 1; i >= 0; i--) {
     if (hpRatio <= boss.phases[i].hpThreshold) {
       boss.currentPhase = i;
       break;
     }
+  }
+  // Reset shoot timer on phase change to prevent burst fire
+  if (boss.currentPhase !== prevPhase) {
+    boss.shootTimer = boss.phases[boss.currentPhase].shootInterval;
   }
 
   const phase = boss.phases[boss.currentPhase];
@@ -123,8 +128,10 @@ registerBossPattern('fury', (boss, px, py, mk) => {
   const cx = boss.x + boss.width / 2;
   const cy = boss.y + boss.height;
   const speed = 320;
-  const fanAngle = boss.patternTimer * 4;
-  const angle1 = fanAngle % Math.PI;
+  const fanAngle = boss.patternTimer * 3;
+  // Clamp angle to [0.25, PI-0.25] to prevent near-horizontal stray bullets
+  const rawAngle = fanAngle % Math.PI;
+  const angle1 = Math.max(0.25, Math.min(Math.PI - 0.25, rawAngle));
   const bullets: BulletData[] = [
     mk(cx, cy, Math.cos(angle1) * speed * 1.0, Math.abs(Math.sin(angle1)) * speed * 0.8 + 120, '#ffff44'),
   ];

@@ -40,7 +40,7 @@ registerBossPattern('omega_burst', (boss: BossData, _px: number, _py: number, mk
     let vy = Math.sin(angle) * speed;
     // Slow down bullets that travel upward so pattern is biased downward
     if (vy < 0) {
-      vy *= 0.3;
+      vy *= 0.5;
     }
     bullets.push(mk(cx, cy, vx, vy, '#ff3333'));
   }
