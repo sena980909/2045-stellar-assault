@@ -447,14 +447,16 @@ export class Game {
         this.boss.hp -= bullet.damage;
         this.boss.hitFlash = 0.08;
         this.particles.push(...createParticles(bullet.x, bullet.y, 4, '#ffffff'));
-        // Drop item at every 20% HP threshold
+        // Drop item at every ~14% HP threshold (7 slices = 6 drops per boss)
+        // Guarantee power items when player is underpowered (breaks death spiral)
         if (this.boss.hp > 0) {
           const newHpRatio = this.boss.hp / this.boss.maxHp;
-          if (Math.floor(prevHpRatio * 5) > Math.floor(newHpRatio * 5)) {
+          if (Math.floor(prevHpRatio * 7) > Math.floor(newHpRatio * 7)) {
+            const itemType = this.player.power <= 2 ? 'power' as const : this.getItemType();
             this.items.push(createItem(
               this.boss.x + this.boss.width / 2 + (Math.random() - 0.5) * 40,
               this.boss.y + this.boss.height,
-              this.getItemType()
+              itemType
             ));
           }
         }
