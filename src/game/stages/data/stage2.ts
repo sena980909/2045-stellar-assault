@@ -34,7 +34,7 @@ const stage2: StageDefinition = {
     enterY: 60,
     phases: [
       { hpThreshold: 1.0, pattern: 'spread', shootInterval: 0.75, speed: 110 },
-      { hpThreshold: 0.6, pattern: 'spiral', shootInterval: 0.1, speed: 130 },
+      { hpThreshold: 0.6, pattern: 'spiral', shootInterval: 0.2, speed: 130 },
       { hpThreshold: 0.25, pattern: 'aimed', shootInterval: 0.35, speed: 170 },
     ],
   },

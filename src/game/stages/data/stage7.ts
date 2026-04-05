@@ -58,7 +58,7 @@ const stage7: StageDefinition = {
   bgColor2: '#120020',
   starSpeed: 0.8,
   difficulty: {
-    enemyHpMultiplier: 1.5,
+    enemyHpMultiplier: 1.35,
     enemySpeedMultiplier: 1.15,
     bossHpMultiplier: 1.1,
   },
@@ -156,8 +156,8 @@ const stage7: StageDefinition = {
     phases: [
       { hpThreshold: 1.0, pattern: 'gravity', shootInterval: 1.0, speed: 70 },
       { hpThreshold: 0.65, pattern: 'spiral', shootInterval: 0.65, speed: 100 },
-      { hpThreshold: 0.35, pattern: 'radial', shootInterval: 0.35, speed: 130 },
-      { hpThreshold: 0.15, pattern: 'aimed', shootInterval: 0.15, speed: 160 },
+      { hpThreshold: 0.35, pattern: 'radial', shootInterval: 0.5, speed: 130 },
+      { hpThreshold: 0.15, pattern: 'aimed', shootInterval: 0.22, speed: 160 },
     ],
   },
 };

@@ -78,7 +78,7 @@ const stage4: StageDefinition = {
     phases: [
       { hpThreshold: 1.0, pattern: 'wave', shootInterval: 0.5, speed: 100 },
       { hpThreshold: 0.6, pattern: 'aimed', shootInterval: 0.35, speed: 130 },
-      { hpThreshold: 0.25, pattern: 'spiral', shootInterval: 0.07, speed: 170 },
+      { hpThreshold: 0.25, pattern: 'spiral', shootInterval: 0.18, speed: 170 },
     ],
   },
   bgColor1: '#0a0020',

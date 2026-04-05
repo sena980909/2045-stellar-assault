@@ -73,13 +73,13 @@ const stage5: StageDefinition = {
     phases: [
       { hpThreshold: 1.0, pattern: 'spread', shootInterval: 0.45, speed: 110 },
       { hpThreshold: 0.55, pattern: 'freeze', shootInterval: 0.6, speed: 140 },
-      { hpThreshold: 0.2, pattern: 'fury', shootInterval: 0.06, speed: 190 },
+      { hpThreshold: 0.2, pattern: 'fury', shootInterval: 0.15, speed: 190 },
     ],
   },
   bgColor1: '#000a1a',
   bgColor2: '#001a2a',
   starSpeed: 1.4,
-  difficulty: { enemyHpMultiplier: 1.3, enemySpeedMultiplier: 1.1 },
+  difficulty: { enemyHpMultiplier: 1.15, enemySpeedMultiplier: 1.1 },
   itemDrop: { dropChance: 0.13, weights: { power: 4, bomb: 3, speed: 2 } },
   victoryText: ['THE ICE SHATTERS. THE FRONTIER IS CLEAR.', 'WARMTH RETURNS TO THE VOID.'],
 };

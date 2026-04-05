@@ -73,9 +73,9 @@ const stage10: StageDefinition = {
   bgColor2: '#200005',
   starSpeed: 2.0,
   difficulty: {
-    enemyHpMultiplier: 1.8,
-    enemySpeedMultiplier: 1.3,
-    bossHpMultiplier: 1.2,
+    enemyHpMultiplier: 1.65,
+    enemySpeedMultiplier: 1.25,
+    bossHpMultiplier: 1.1,
   },
   itemDrop: {
     dropChance: 0.20,
@@ -158,9 +158,9 @@ const stage10: StageDefinition = {
     //  Phase 5: Hell wave — elite + heavy + kamikaze together (40~48s)
     // =====================================================================
     { time: 40, enemies: [
-      { type: 'elite', count: 4, delay: 0.35 },
-      { type: 'heavy', count: 3, delay: 0.4 },
-      { type: 'kamikaze', count: 6, delay: 0.15 },
+      { type: 'elite', count: 3, delay: 0.4 },
+      { type: 'heavy', count: 2, delay: 0.45 },
+      { type: 'kamikaze', count: 4, delay: 0.18 },
     ]},
     { time: 44, enemies: [
       { type: 'elite', count: 3, delay: 0.3 },
@@ -178,9 +178,9 @@ const stage10: StageDefinition = {
     //  Phase 6: Pre-boss mega rush — waves of everything (55~65s)
     // =====================================================================
     { time: 55, enemies: [
-      { type: 'elite', count: 5, delay: 0.2 },
-      { type: 'fighter', count: 6, delay: 0.15 },
-      { type: 'kamikaze', count: 5, delay: 0.12 },
+      { type: 'elite', count: 4, delay: 0.25 },
+      { type: 'fighter', count: 5, delay: 0.2 },
+      { type: 'kamikaze', count: 4, delay: 0.15 },
     ]},
     { time: 59, enemies: [
       { type: 'heavy', count: 3, delay: 0.35 },
@@ -200,7 +200,7 @@ const stage10: StageDefinition = {
   ],
   boss: {
     name: 'OMEGA PRIME',
-    hp: 3000,
+    hp: 2500,
     width: 110,
     height: 80,
     score: 50000,
@@ -212,7 +212,7 @@ const stage10: StageDefinition = {
       { hpThreshold: 0.75, pattern: 'spread',      shootInterval: 0.6,  speed: 100 },
       { hpThreshold: 0.5,  pattern: 'omega_rain',  shootInterval: 0.15, speed: 130 },
       { hpThreshold: 0.25, pattern: 'aimed',        shootInterval: 0.25, speed: 160 },
-      { hpThreshold: 0.1,  pattern: 'fury',         shootInterval: 0.05, speed: 180 },
+      { hpThreshold: 0.1,  pattern: 'fury',         shootInterval: 0.1, speed: 180 },
     ],
   },
 };

@@ -46,7 +46,7 @@ const stage6: StageDefinition = {
   bgColor2: '#1a1000',
   starSpeed: 1.5,
   difficulty: {
-    enemyHpMultiplier: 1.4,
+    enemyHpMultiplier: 1.25,
     enemySpeedMultiplier: 1.1,
   },
   itemDrop: {
@@ -92,8 +92,8 @@ const stage6: StageDefinition = {
       { type: 'scout', count: 5, delay: 0.12 },
     ]},
     { time: 28, enemies: [
-      { type: 'phoenix', count: 6, delay: 0.18 },
-      { type: 'fighter', count: 5, delay: 0.25 },
+      { type: 'phoenix', count: 4, delay: 0.22 },
+      { type: 'fighter', count: 4, delay: 0.25 },
     ]},
     { time: 32, enemies: [
       { type: 'heavy', count: 3, delay: 0.35 },
@@ -103,9 +103,9 @@ const stage6: StageDefinition = {
 
     // === Phase 4: Heat wave - maximum pressure (37~47s) ===
     { time: 37, enemies: [
-      { type: 'phoenix', count: 6, delay: 0.15 },
+      { type: 'phoenix', count: 4, delay: 0.2 },
       { type: 'heavy', count: 2, delay: 0.4 },
-      { type: 'fighter', count: 5, delay: 0.2 },
+      { type: 'fighter', count: 4, delay: 0.25 },
     ]},
     { time: 42, enemies: [
       { type: 'phoenix', count: 5, delay: 0.15 },
@@ -115,8 +115,8 @@ const stage6: StageDefinition = {
 
     // === Phase 5: Pre-boss rush (48~55s) ===
     { time: 48, enemies: [
-      { type: 'phoenix', count: 6, delay: 0.12 },
-      { type: 'kamikaze', count: 4, delay: 0.15 },
+      { type: 'phoenix', count: 4, delay: 0.15 },
+      { type: 'kamikaze', count: 3, delay: 0.18 },
     ]},
     { time: 52, enemies: [
       { type: 'phoenix', count: 4, delay: 0.12 },
@@ -139,7 +139,7 @@ const stage6: StageDefinition = {
       { hpThreshold: 1.0, pattern: 'solar_flare', shootInterval: 1.0, speed: 80 },
       { hpThreshold: 0.6, pattern: 'spread', shootInterval: 0.6, speed: 100 },
       { hpThreshold: 0.3, pattern: 'aimed', shootInterval: 0.3, speed: 140 },
-      { hpThreshold: 0.1, pattern: 'fury', shootInterval: 0.1, speed: 170 },
+      { hpThreshold: 0.1, pattern: 'fury', shootInterval: 0.18, speed: 170 },
     ],
   },
 };
