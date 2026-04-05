@@ -6,14 +6,12 @@ const ITEM_COLORS: Record<ItemType, string> = {
   power: '#00ffff',
   bomb: '#ff4444',
   speed: '#44ff44',
-  hp: '#ff88ff',
 };
 
 const ITEM_LABELS: Record<ItemType, string> = {
   power: 'P',
   bomb: 'B',
   speed: 'S',
-  hp: '+',
 };
 
 export function createItem(x: number, y: number, type: ItemType): ItemData {
@@ -30,10 +28,9 @@ export function createItem(x: number, y: number, type: ItemType): ItemData {
 
 export function randomItemType(): ItemType {
   const roll = Math.random();
-  if (roll < 0.40) return 'power';
-  if (roll < 0.55) return 'bomb';
-  if (roll < 0.75) return 'speed';
-  return 'hp';
+  if (roll < 0.50) return 'power';
+  if (roll < 0.75) return 'bomb';
+  return 'speed';
 }
 
 export function updateItem(item: ItemData, dt: number) {

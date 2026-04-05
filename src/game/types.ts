@@ -47,7 +47,7 @@ export interface EnemyType {
   score: number;
   color: string;
   glowColor: string;
-  pattern: 'straight' | 'zigzag' | 'slow' | 'chase';
+  pattern: string;
   canShoot: boolean;
   shootInterval: number;
   bulletCount: number;
@@ -89,7 +89,7 @@ export interface BossData extends Entity {
   hitFlash: number;
 }
 
-export type ItemType = 'power' | 'bomb' | 'speed' | 'hp';
+export type ItemType = 'power' | 'bomb' | 'speed';
 
 export interface ItemData extends Entity {
   type: ItemType;
@@ -123,8 +123,7 @@ export interface PlayerState {
   y: number;
   width: number;
   height: number;
-  hp: number;
-  maxHp: number;
+  lives: number;
   power: number;
   bombs: number;
   speed: number;
@@ -150,14 +149,43 @@ export interface WaveDefinition {
   enemies: { type: string; count: number; delay: number; x?: number }[];
 }
 
+export interface BossTemplate {
+  name: string;
+  hp: number;
+  width: number;
+  height: number;
+  score: number;
+  color: string;
+  glowColor: string;
+  enterY: number;
+  phases: BossPhase[];
+}
+
+export interface ItemDropConfig {
+  dropChance: number;
+  weights?: { power: number; bomb: number; speed: number };
+}
+
+export interface DifficultyModifiers {
+  enemyHpMultiplier?: number;
+  enemySpeedMultiplier?: number;
+  bossHpMultiplier?: number;
+  bossShootIntervalMultiplier?: number;
+}
+
 export interface StageDefinition {
   name: string;
   subtitle: string;
   waves: WaveDefinition[];
-  bossName: string;
+  boss: BossTemplate;
   bgColor1: string;
   bgColor2: string;
   starSpeed: number;
+  // Extensibility fields (all optional with sensible defaults)
+  difficulty?: DifficultyModifiers;
+  itemDrop?: ItemDropConfig;
+  victoryText?: string[];
+  enemyTypes?: Record<string, EnemyType>;
 }
 
 export interface DebugState {

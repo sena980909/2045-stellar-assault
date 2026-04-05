@@ -2,6 +2,19 @@
 
 import { EnemyType, EnemyData, BulletData } from '../types';
 
+// ===== ENEMY TYPE REGISTRY =====
+// To add custom enemy types per-stage, call registerEnemyType() or use stage.enemyTypes.
+
+export function registerEnemyType(name: string, type: EnemyType) {
+  ENEMY_TYPES[name] = type;
+}
+
+export function registerEnemyTypes(types: Record<string, EnemyType>) {
+  for (const [name, type] of Object.entries(types)) {
+    ENEMY_TYPES[name] = type;
+  }
+}
+
 export const ENEMY_TYPES: Record<string, EnemyType> = {
   scout: {
     name: 'Scout Drone',
@@ -81,6 +94,35 @@ export function createEnemy(typeName: string, x: number, y: number): EnemyData {
   };
 }
 
+// ===== ENEMY MOVEMENT PATTERN REGISTRY =====
+type EnemyPatternHandler = (enemy: EnemyData, dt: number, playerX: number, playerY: number) => void;
+
+const ENEMY_PATTERNS: Record<string, EnemyPatternHandler> = {};
+
+export function registerEnemyPattern(name: string, handler: EnemyPatternHandler) {
+  ENEMY_PATTERNS[name] = handler;
+}
+
+// Built-in movement patterns
+registerEnemyPattern('straight', (enemy) => {
+  enemy.vy = enemy.type.speed;
+});
+registerEnemyPattern('zigzag', (enemy) => {
+  enemy.vx = Math.sin(enemy.patternTimer * 3) * 120;
+  enemy.vy = enemy.type.speed;
+});
+registerEnemyPattern('slow', (enemy) => {
+  enemy.vy = enemy.type.speed;
+  enemy.vx = Math.sin(enemy.patternTimer * 1.5) * 50;
+});
+registerEnemyPattern('chase', (enemy, _dt, playerX, playerY) => {
+  const dx = (playerX + 16) - (enemy.x + enemy.width / 2);
+  const dy = (playerY + 16) - (enemy.y + enemy.height / 2);
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  enemy.vx = (dx / dist) * enemy.type.speed;
+  enemy.vy = (dy / dist) * enemy.type.speed;
+});
+
 export function updateEnemy(
   enemy: EnemyData,
   dt: number,
@@ -90,26 +132,11 @@ export function updateEnemy(
 ) {
   enemy.patternTimer += dt;
 
-  switch (enemy.type.pattern) {
-    case 'straight':
-      enemy.vy = enemy.type.speed;
-      break;
-    case 'zigzag':
-      enemy.vx = Math.sin(enemy.patternTimer * 3) * 120;
-      enemy.vy = enemy.type.speed;
-      break;
-    case 'slow':
-      enemy.vy = enemy.type.speed;
-      enemy.vx = Math.sin(enemy.patternTimer * 1.5) * 50;
-      break;
-    case 'chase': {
-      const dx = (playerX + 16) - (enemy.x + enemy.width / 2);
-      const dy = (playerY + 16) - (enemy.y + enemy.height / 2);
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      enemy.vx = (dx / dist) * enemy.type.speed;
-      enemy.vy = (dy / dist) * enemy.type.speed;
-      break;
-    }
+  const patternHandler = ENEMY_PATTERNS[enemy.type.pattern];
+  if (patternHandler) {
+    patternHandler(enemy, dt, playerX, playerY);
+  } else {
+    enemy.vy = enemy.type.speed; // fallback: straight down
   }
 
   enemy.x += enemy.vx * dt;
@@ -162,6 +189,22 @@ export function enemyShoot(enemy: EnemyData, playerX: number, playerY: number): 
         isPlayer: false,
         active: true,
         color: '#ff44ff',
+      });
+    }
+  } else if (enemy.type.bulletCount === 5) {
+    for (let i = -2; i <= 2; i++) {
+      const angle = Math.PI / 2 + (i * Math.PI / 10);
+      bullets.push({
+        x: cx - 3,
+        y: cy,
+        width: 7,
+        height: 7,
+        vx: Math.cos(angle) * speed * 0.35,
+        vy: Math.sin(angle) * speed * 0.9,
+        damage: 1,
+        isPlayer: false,
+        active: true,
+        color: '#66aaff',
       });
     }
   }

@@ -1,88 +1,27 @@
 // ===== BOSS ENTITIES =====
 
-import { BossData, BossPhase, BulletData } from '../types';
+import { BossData, BossTemplate, BulletData } from '../types';
 
-interface BossTemplate {
-  name: string;
-  hp: number;
-  width: number;
-  height: number;
-  score: number;
-  color: string;
-  glowColor: string;
-  enterY: number;
-  phases: BossPhase[];
-}
-
-const BOSS_TEMPLATES: Record<string, BossTemplate> = {
-  stage1: {
-    name: 'SENTINEL MK-I',
-    hp: 500,
-    width: 64,
-    height: 48,
-    score: 5000,
-    color: '#ff4444',
-    glowColor: '#ff0000',
-    enterY: 60,
-    phases: [
-      { hpThreshold: 1.0, pattern: 'spread', shootInterval: 0.9, speed: 100 },
-      { hpThreshold: 0.4, pattern: 'aimed', shootInterval: 0.55, speed: 150 },
-    ],
-  },
-  stage2: {
-    name: 'OVERLORD X-7',
-    hp: 1000,
-    width: 80,
-    height: 56,
-    score: 10000,
-    color: '#cc44ff',
-    glowColor: '#9900ff',
-    enterY: 60,
-    phases: [
-      { hpThreshold: 1.0, pattern: 'spread', shootInterval: 0.75, speed: 110 },
-      { hpThreshold: 0.6, pattern: 'spiral', shootInterval: 0.1, speed: 130 },
-      { hpThreshold: 0.25, pattern: 'aimed', shootInterval: 0.35, speed: 170 },
-    ],
-  },
-  stage3: {
-    name: 'NEXUS PRIME',
-    hp: 2000,
-    width: 96,
-    height: 64,
-    score: 20000,
-    color: '#ffaa00',
-    glowColor: '#ff8800',
-    enterY: 50,
-    phases: [
-      { hpThreshold: 1.0, pattern: 'radial', shootInterval: 0.6, speed: 90 },
-      { hpThreshold: 0.7, pattern: 'spiral', shootInterval: 0.08, speed: 120 },
-      { hpThreshold: 0.4, pattern: 'aimed', shootInterval: 0.3, speed: 160 },
-      { hpThreshold: 0.15, pattern: 'fury', shootInterval: 0.07, speed: 180 },
-    ],
-  },
-};
-
-export function createBoss(stageName: string, canvasWidth: number): BossData {
-  const t = BOSS_TEMPLATES[stageName];
+export function createBoss(template: BossTemplate, canvasWidth: number): BossData {
   return {
-    x: canvasWidth / 2 - t.width / 2,
-    y: -t.height - 10,
-    width: t.width,
-    height: t.height,
-    hp: t.hp,
-    maxHp: t.hp,
-    name: t.name,
-    phases: t.phases,
+    x: canvasWidth / 2 - template.width / 2,
+    y: -template.height - 10,
+    width: template.width,
+    height: template.height,
+    hp: template.hp,
+    maxHp: template.hp,
+    name: template.name,
+    phases: template.phases,
     currentPhase: 0,
     shootTimer: 1,
     patternTimer: 0,
     moveDir: 1,
-    score: t.score,
-    color: t.color,
-    glowColor: t.glowColor,
+    score: template.score,
+    color: template.color,
+    glowColor: template.glowColor,
     active: true,
     entering: true,
-    enterY: t.enterY,
+    enterY: template.enterY,
     hitFlash: 0,
   };
 }
@@ -118,70 +57,95 @@ export function updateBoss(boss: BossData, dt: number, canvasWidth: number) {
   if (boss.hitFlash > 0) boss.hitFlash -= dt;
 }
 
+// ===== BOSS PATTERN REGISTRY =====
+// To add a new pattern: call registerBossPattern('name', handler) from your stage data file.
+
+type BossPatternHandler = (boss: BossData, playerX: number, playerY: number, makeBullet: typeof makeBossBullet) => BulletData[];
+
+const BOSS_PATTERNS: Record<string, BossPatternHandler> = {};
+
+export function registerBossPattern(name: string, handler: BossPatternHandler) {
+  BOSS_PATTERNS[name] = handler;
+}
+
+// Built-in patterns
+registerBossPattern('spread', (boss, _px, _py, mk) => {
+  const cx = boss.x + boss.width / 2;
+  const cy = boss.y + boss.height;
+  const speed = 320;
+  const bullets: BulletData[] = [];
+  for (let i = -2; i <= 2; i++) {
+    const angle = Math.PI / 2 + (i * Math.PI / 10);
+    bullets.push(mk(cx, cy, Math.cos(angle) * speed, Math.sin(angle) * speed, boss.color));
+  }
+  return bullets;
+});
+
+registerBossPattern('aimed', (boss, px, py, mk) => {
+  const cx = boss.x + boss.width / 2;
+  const cy = boss.y + boss.height;
+  const speed = 320;
+  const dx = (px + 16) - cx;
+  const dy = (py + 16) - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const bullets: BulletData[] = [];
+  for (let i = -1; i <= 1; i++) {
+    const spread = i * 30;
+    bullets.push(mk(cx + spread, cy, (dx / dist) * speed * 1.3, (dy / dist) * speed * 1.3, '#ff8888'));
+  }
+  return bullets;
+});
+
+registerBossPattern('spiral', (boss, _px, _py, mk) => {
+  const cx = boss.x + boss.width / 2;
+  const cy = boss.y + boss.height;
+  const speed = 320;
+  const angle = boss.patternTimer * 5;
+  const vx1 = Math.cos(angle) * speed * 0.7;
+  const vy1 = Math.abs(Math.sin(angle)) * speed * 0.6 + 150;
+  return [mk(cx, cy, vx1, vy1, boss.color), mk(cx, cy, -vx1, vy1, boss.color)];
+});
+
+registerBossPattern('radial', (boss, _px, _py, mk) => {
+  const cx = boss.x + boss.width / 2;
+  const cy = boss.y + boss.height;
+  const speed = 320;
+  const count = 8;
+  const bullets: BulletData[] = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * i) / (count - 1) + boss.patternTimer * 0.5;
+    bullets.push(mk(cx, cy, Math.cos(angle) * speed * 0.7, Math.abs(Math.sin(angle)) * speed * 0.7 + 60, boss.glowColor));
+  }
+  return bullets;
+});
+
+registerBossPattern('fury', (boss, px, py, mk) => {
+  const cx = boss.x + boss.width / 2;
+  const cy = boss.y + boss.height;
+  const speed = 320;
+  const fanAngle = boss.patternTimer * 4;
+  const angle1 = fanAngle % Math.PI;
+  const bullets: BulletData[] = [
+    mk(cx, cy, Math.cos(angle1) * speed * 1.0, Math.abs(Math.sin(angle1)) * speed * 0.8 + 120, '#ffff44'),
+  ];
+  if (Math.floor(boss.patternTimer * 14) % 3 === 0) {
+    const dx = (px + 16) - cx;
+    const dy = (py + 16) - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    bullets.push(mk(cx, cy, (dx / dist) * speed * 1.4, (dy / dist) * speed * 1.4, '#ff0000'));
+  }
+  return bullets;
+});
+
 export function bossShoot(boss: BossData, playerX: number, playerY: number): BulletData[] {
   if (boss.entering || boss.shootTimer > 0) return [];
 
   const phase = boss.phases[boss.currentPhase];
   boss.shootTimer = phase.shootInterval;
 
-  const cx = boss.x + boss.width / 2;
-  const cy = boss.y + boss.height;
-  const bullets: BulletData[] = [];
-  const speed = 320;
-
-  switch (phase.pattern) {
-    case 'spread': {
-      for (let i = -2; i <= 2; i++) {
-        const angle = Math.PI / 2 + (i * Math.PI / 10);
-        bullets.push(makeBossBullet(cx, cy, Math.cos(angle) * speed, Math.sin(angle) * speed, boss.color));
-      }
-      break;
-    }
-    case 'aimed': {
-      const dx = (playerX + 16) - cx;
-      const dy = (playerY + 16) - cy;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      for (let i = -1; i <= 1; i++) {
-        const spread = i * 30;
-        bullets.push(makeBossBullet(cx + spread, cy, (dx / dist) * speed * 1.3, (dy / dist) * speed * 1.3, '#ff8888'));
-      }
-      break;
-    }
-    case 'spiral': {
-      const angle = boss.patternTimer * 5;
-      // Only fire downward half (toward player), bias vy positive
-      const vx1 = Math.cos(angle) * speed * 0.7;
-      const vy1 = Math.abs(Math.sin(angle)) * speed * 0.6 + 150;
-      bullets.push(makeBossBullet(cx, cy, vx1, vy1, boss.color));
-      bullets.push(makeBossBullet(cx, cy, -vx1, vy1, boss.color));
-      break;
-    }
-    case 'radial': {
-      // Only lower hemisphere (toward player) - 8 bullets in a fan
-      const count = 8;
-      for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * i) / (count - 1) + boss.patternTimer * 0.5;
-        bullets.push(makeBossBullet(cx, cy, Math.cos(angle) * speed * 0.7, Math.abs(Math.sin(angle)) * speed * 0.7 + 60, boss.glowColor));
-      }
-      break;
-    }
-    case 'fury': {
-      // Deterministic rotating fan (no random)
-      const fanAngle = boss.patternTimer * 4;
-      const angle1 = fanAngle % Math.PI;
-      bullets.push(makeBossBullet(cx, cy, Math.cos(angle1) * speed * 1.0, Math.abs(Math.sin(angle1)) * speed * 0.8 + 120, '#ffff44'));
-      // alternating aimed burst every other shot
-      if (Math.floor(boss.patternTimer * 14) % 3 === 0) {
-        const dx = (playerX + 16) - cx;
-        const dy = (playerY + 16) - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        bullets.push(makeBossBullet(cx, cy, (dx / dist) * speed * 1.4, (dy / dist) * speed * 1.4, '#ff0000'));
-      }
-      break;
-    }
-  }
-
-  return bullets;
+  const handler = BOSS_PATTERNS[phase.pattern];
+  if (!handler) return [];
+  return handler(boss, playerX, playerY, makeBossBullet);
 }
 
 function makeBossBullet(x: number, y: number, vx: number, vy: number, color: string): BulletData {

@@ -8,10 +8,9 @@ export function createPlayer(canvasWidth: number, canvasHeight: number): PlayerS
     y: canvasHeight - 80,
     width: 32,
     height: 32,
-    hp: 3,
-    maxHp: 3,
+    lives: 3,
     power: 1,
-    bombs: 2,
+    bombs: 3,
     speed: 4.5,
     score: 0,
     invincible: false,
@@ -104,15 +103,20 @@ export function getPlayerHitbox(player: PlayerState): { x: number; y: number; wi
   return { x: cx - size / 2, y: cy - size / 2, width: size, height: size };
 }
 
-export function hitPlayer(player: PlayerState, damage: number): boolean {
-  if (player.invincible) return false;
-  player.hp -= damage;
-  if (player.hp <= 0) {
-    player.hp = 0;
-    return true; // dead
+// Returns true if no lives left (game over)
+export function killPlayer(player: PlayerState, canvasWidth: number, canvasHeight: number): boolean {
+  player.lives--;
+  if (player.lives <= 0) {
+    player.lives = 0;
+    return true; // game over
   }
+  // Respawn: partial power reset, keep score/bombs, become invincible
+  player.power = Math.max(player.power - 2, 1); // lose 2 levels, min 1
+  player.speed = 4.5;
+  player.x = canvasWidth / 2 - player.width / 2;
+  player.y = canvasHeight - 80;
   player.invincible = true;
-  player.invincibleTimer = 1.2;
+  player.invincibleTimer = 2.5; // longer invincibility on respawn
   return false;
 }
 

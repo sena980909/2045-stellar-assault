@@ -36,8 +36,10 @@ export class InputManager {
   private onTouchEnd: ((e: TouchEvent) => void) | null = null;
 
   // Button layout (in game coordinates 400x700)
-  readonly bombBtn = { x: 400 - 65, y: 700 - 65, r: 28 };
-  readonly focusBtn = { x: 400 - 65, y: 700 - 130, r: 24 };
+  // Bomb: bottom-right, big panic button
+  readonly bombBtn = { x: 400 - 55, y: 700 - 60, r: 34 };
+  // Focus: above bomb, bigger for easy hold
+  readonly focusBtn = { x: 400 - 55, y: 700 - 145, r: 30 };
   readonly muteBtn = { x: 400 - 25, y: 30, r: 16 };
 
   init(canvas: HTMLCanvasElement) {
@@ -293,45 +295,53 @@ export class InputManager {
       ctx.stroke();
     }
 
-    // === Bomb Button ===
+    // === Bomb Button (big panic button) ===
     const bb = this.bombBtn;
-    ctx.globalAlpha = this.touchBomb ? 0.7 : 0.3;
+    ctx.globalAlpha = this.touchBomb ? 0.8 : 0.35;
     ctx.fillStyle = this.touchBomb ? '#ff4444' : '#441111';
     ctx.beginPath();
     ctx.arc(bb.x, bb.y, bb.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ff4444';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.globalAlpha = this.touchBomb ? 1.0 : 0.5;
     ctx.beginPath();
     ctx.arc(bb.x, bb.y, bb.r, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.globalAlpha = this.touchBomb ? 1.0 : 0.6;
+    ctx.globalAlpha = this.touchBomb ? 1.0 : 0.7;
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 16px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('B', bb.x, bb.y);
+    ctx.fillText('BOMB', bb.x, bb.y);
 
-    // === Focus Button ===
+    // === Focus Button (hold to focus) ===
     const fb = this.focusBtn;
-    ctx.globalAlpha = this.touchFocus ? 0.7 : 0.25;
+    ctx.globalAlpha = this.touchFocus ? 0.8 : 0.3;
     ctx.fillStyle = this.touchFocus ? '#00ccff' : '#112233';
     ctx.beginPath();
     ctx.arc(fb.x, fb.y, fb.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#00ccff';
     ctx.lineWidth = 2;
-    ctx.globalAlpha = this.touchFocus ? 1.0 : 0.4;
+    ctx.globalAlpha = this.touchFocus ? 1.0 : 0.45;
     ctx.beginPath();
     ctx.arc(fb.x, fb.y, fb.r, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.globalAlpha = this.touchFocus ? 1.0 : 0.5;
+    // Inner ring when active
+    if (this.touchFocus) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(fb.x, fb.y, fb.r - 6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = this.touchFocus ? 1.0 : 0.6;
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px monospace';
+    ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('F', fb.x, fb.y);
+    ctx.fillText('FOCUS', fb.x, fb.y);
 
     ctx.restore();
   }
