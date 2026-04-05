@@ -23,7 +23,8 @@ export class InputManager {
   // Virtual button states
   touchBomb = false;
   touchFocus = false;
-  private touchTap = false; // for menu start
+  touchMute = false;
+  private touchTap = false; // for menu start / confirm
 
   // Store bound handlers for cleanup
   private onKeyDown: ((e: KeyboardEvent) => void) | null = null;
@@ -37,7 +38,7 @@ export class InputManager {
   // Button layout (in game coordinates 400x700)
   readonly bombBtn = { x: 400 - 65, y: 700 - 65, r: 28 };
   readonly focusBtn = { x: 400 - 65, y: 700 - 130, r: 24 };
-  readonly joystickArea = { maxX: 200 }; // left half for joystick
+  readonly muteBtn = { x: 400 - 25, y: 30, r: 16 };
 
   init(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -65,6 +66,8 @@ export class InputManager {
       const scaleX = 400 / rect.width;
       const scaleY = 700 / rect.height;
 
+      let hitButton = false;
+
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         const gx = (touch.clientX - rect.left) * scaleX;
@@ -73,16 +76,25 @@ export class InputManager {
         // Check bomb button
         if (this.hitCircle(gx, gy, this.bombBtn)) {
           this.touchBomb = true;
+          hitButton = true;
           continue;
         }
 
         // Check focus button
         if (this.hitCircle(gx, gy, this.focusBtn)) {
           this.touchFocus = true;
+          hitButton = true;
           continue;
         }
 
-        // Joystick (left side or anywhere not on buttons)
+        // Check mute button (top right)
+        if (this.hitCircle(gx, gy, this.muteBtn)) {
+          this.touchMute = true;
+          hitButton = true;
+          continue;
+        }
+
+        // Joystick (anywhere not on buttons)
         if (!this.joystick) {
           this.joystick = {
             id: touch.identifier,
@@ -94,8 +106,10 @@ export class InputManager {
         }
       }
 
-      // Tap for menu start
-      this.touchTap = true;
+      // Tap for menu/confirm (only if not hitting a button)
+      if (!hitButton) {
+        this.touchTap = true;
+      }
     };
 
     this.onTouchMove = (e: TouchEvent) => {
@@ -124,8 +138,6 @@ export class InputManager {
 
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
-        const gx = (touch.clientX - rect.left) * scaleX;
-        const gy = (touch.clientY - rect.top) * scaleY;
 
         // Release joystick
         if (this.joystick && touch.identifier === this.joystick.id) {
@@ -133,17 +145,17 @@ export class InputManager {
           this.touchMoveX = 0;
           this.touchMoveY = 0;
         }
+      }
 
-        // Release buttons - check if any remaining touch is on button
-        this.touchBomb = false;
-        this.touchFocus = false;
-        for (let j = 0; j < e.touches.length; j++) {
-          const remaining = e.touches[j];
-          const rx = (remaining.clientX - rect.left) * scaleX;
-          const ry = (remaining.clientY - rect.top) * scaleY;
-          if (this.hitCircle(rx, ry, this.bombBtn)) this.touchBomb = true;
-          if (this.hitCircle(rx, ry, this.focusBtn)) this.touchFocus = true;
-        }
+      // Recheck remaining touches for held buttons
+      this.touchBomb = false;
+      this.touchFocus = false;
+      for (let j = 0; j < e.touches.length; j++) {
+        const remaining = e.touches[j];
+        const rx = (remaining.clientX - rect.left) * scaleX;
+        const ry = (remaining.clientY - rect.top) * scaleY;
+        if (this.hitCircle(rx, ry, this.bombBtn)) this.touchBomb = true;
+        if (this.hitCircle(rx, ry, this.focusBtn)) this.touchFocus = true;
       }
     };
 
@@ -159,7 +171,7 @@ export class InputManager {
   private hitCircle(x: number, y: number, btn: { x: number; y: number; r: number }): boolean {
     const dx = x - btn.x;
     const dy = y - btn.y;
-    return dx * dx + dy * dy <= (btn.r + 10) * (btn.r + 10); // extra padding
+    return dx * dx + dy * dy <= (btn.r + 12) * (btn.r + 12);
   }
 
   update() {
@@ -180,10 +192,16 @@ export class InputManager {
       this.touchMoveY = Math.abs(dy) > deadzone ? Math.max(-1, Math.min(1, dy / 50)) : 0;
     }
 
-    // Handle touch tap as Space press (for menus)
+    // Handle touch tap as Space press (for menus/confirm)
     if (this.touchTap) {
       this.justPressed.add('Space');
       this.touchTap = false;
+    }
+
+    // Handle mute button tap
+    if (this.touchMute) {
+      this.justPressed.add('KeyM');
+      this.touchMute = false;
     }
   }
 
@@ -253,14 +271,12 @@ export class InputManager {
 
     // === Virtual Joystick ===
     if (this.joystick) {
-      // Base circle
       ctx.globalAlpha = 0.2;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(this.joystick.startX, this.joystick.startY, 45, 0, Math.PI * 2);
       ctx.fill();
 
-      // Thumb
       ctx.globalAlpha = 0.5;
       ctx.fillStyle = '#00ccff';
       ctx.beginPath();
@@ -275,13 +291,6 @@ export class InputManager {
       ctx.beginPath();
       ctx.arc(thumbX, thumbY, 18, 0, Math.PI * 2);
       ctx.stroke();
-    } else {
-      // Hint: show joystick area
-      ctx.globalAlpha = 0.08;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '12px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('DRAG TO MOVE', 100, 650);
     }
 
     // === Bomb Button ===
@@ -297,7 +306,6 @@ export class InputManager {
     ctx.beginPath();
     ctx.arc(bb.x, bb.y, bb.r, 0, Math.PI * 2);
     ctx.stroke();
-
     ctx.globalAlpha = this.touchBomb ? 1.0 : 0.6;
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 16px monospace';
@@ -318,7 +326,6 @@ export class InputManager {
     ctx.beginPath();
     ctx.arc(fb.x, fb.y, fb.r, 0, Math.PI * 2);
     ctx.stroke();
-
     ctx.globalAlpha = this.touchFocus ? 1.0 : 0.5;
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 12px monospace';

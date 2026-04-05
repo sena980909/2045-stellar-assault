@@ -181,9 +181,14 @@ export class Game {
   private updateMenu(dt: number) {
     this.bg.update(dt);
     if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
-      this.sound.init();
+      this.sound.init(); // iOS: init on user gesture
       this.stageManager.restartFromBeginning();
       this.startGame();
+    }
+    // Sound toggle from menu too
+    if (this.input.wasPressed('KeyM')) {
+      this.sound.init();
+      this.sound.toggleMute();
     }
   }
 
@@ -545,14 +550,36 @@ export class Game {
   }
 
   // ===== GAME OVER =====
+  gameOverTapCount = 0;
+  gameOverTapTimer = 0;
+
   private updateGameOver() {
+    this.gameOverTapTimer += 1 / 60;
+
     if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
       if (this.isScoreTopTen()) {
         this.enterNameEntry('gameOver');
-      } else {
-        this.stageManager.restartFromBeginning();
-        this.startGame();
+        return;
       }
+      // Mobile double-tap: first tap = retry, or if tapped twice quickly = menu
+      this.gameOverTapCount++;
+      if (this.gameOverTapCount === 1) {
+        this.gameOverTapTimer = 0;
+      }
+      if (this.gameOverTapCount >= 2 && this.gameOverTapTimer < 0.5) {
+        // Double tap = menu
+        this.clearAllObjects();
+        this.state = 'menu';
+        this.gameOverTapCount = 0;
+        return;
+      }
+    }
+    // Single tap after delay = retry
+    if (this.gameOverTapCount === 1 && this.gameOverTapTimer > 0.5) {
+      this.gameOverTapCount = 0;
+      this.stageManager.restartFromBeginning();
+      this.startGame();
+      return;
     }
     if (this.input.wasPressed('Escape')) {
       this.clearAllObjects();
@@ -580,7 +607,11 @@ export class Game {
     this.state = 'enterName';
   }
 
+  nameTapTimer = 0;
+
   private updateEnterName() {
+    this.nameTapTimer += 1 / 60;
+
     // Keyboard controls
     if (this.input.wasPressed('ArrowLeft') || this.input.wasPressed('KeyA')) {
       this.namePos = Math.max(0, this.namePos - 1);
@@ -594,26 +625,52 @@ export class Game {
     if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
       this.nameChars[this.namePos] = (this.nameChars[this.namePos] + 25) % 26;
     }
-    // Mobile: each tap cycles current letter, then advances
+
     if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
-      if (this.namePos < 2) {
-        this.namePos++;
+      if (this.input.isMobile) {
+        // Mobile: tap cycles letter, double-tap confirms and advances
+        if (this.nameTapTimer < 0.4) {
+          // Double tap = confirm this slot and advance
+          if (this.namePos < 2) {
+            this.namePos++;
+          } else {
+            this.confirmName();
+          }
+        } else {
+          // Single tap = cycle letter forward
+          this.nameChars[this.namePos] = (this.nameChars[this.namePos] + 1) % 26;
+        }
+        this.nameTapTimer = 0;
       } else {
-        this.confirmName();
+        // Keyboard: Space/Enter advances position, then confirms
+        if (this.namePos < 2) {
+          this.namePos++;
+        } else {
+          this.confirmName();
+        }
       }
     }
-    // Mobile touch: use joystick Y for letter change
+
+    // Mobile touch: use joystick Y for letter change (drag up/down)
     if (this.input.isMobile && this.input.hasJoystick) {
       const joy = this.input.joystickPos;
       if (joy) {
         const dy = joy.currentY - joy.startY;
-        if (dy < -20) {
+        if (dy < -25) {
           this.nameChars[this.namePos] = (this.nameChars[this.namePos] + 1) % 26;
-          // Reset joystick to prevent rapid scroll
           joy.startY = joy.currentY;
-        } else if (dy > 20) {
+        } else if (dy > 25) {
           this.nameChars[this.namePos] = (this.nameChars[this.namePos] + 25) % 26;
           joy.startY = joy.currentY;
+        }
+        // Joystick X for position change
+        const dx = joy.currentX - joy.startX;
+        if (dx > 40) {
+          this.namePos = Math.min(2, this.namePos + 1);
+          joy.startX = joy.currentX;
+        } else if (dx < -40) {
+          this.namePos = Math.max(0, this.namePos - 1);
+          joy.startX = joy.currentX;
         }
       }
     }
@@ -975,11 +1032,27 @@ export class Game {
     ctx.font = '10px monospace';
     ctx.fillText(`PWR ${this.player.power}/4`, 10, 70);
 
-    // Sound mute indicator
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#555';
-    ctx.font = '10px monospace';
-    ctx.fillText(this.sound.muted ? 'MUTE [M]' : 'SND [M]', this.width - 10, 34);
+    // Sound mute indicator / button
+    if (this.input.isMobile) {
+      const mb = this.input.muteBtn;
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = this.sound.muted ? '#ff4444' : '#336';
+      ctx.beginPath();
+      ctx.arc(mb.x, mb.y, mb.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.sound.muted ? 'X' : 'S', mb.x, mb.y);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#555';
+      ctx.font = '10px monospace';
+      ctx.fillText(this.sound.muted ? 'MUTE [M]' : 'SND [M]', this.width - 10, 34);
+    }
 
     // Combo display
     if (this.comboDisplayTimer > 0 && this.comboCount >= 3) {
@@ -1099,7 +1172,8 @@ export class Game {
     ctx.font = '11px monospace';
     ctx.textAlign = 'center';
     if (this.input.isMobile) {
-      ctx.fillText('TAP TO CONFIRM LETTER', cx, this.height / 2 + 95);
+      ctx.fillText('TAP=CHANGE  DOUBLE TAP=NEXT', cx, this.height / 2 + 90);
+      ctx.fillText('OR DRAG UP/DOWN & LEFT/RIGHT', cx, this.height / 2 + 106);
     } else {
       ctx.fillText('↑↓ CHANGE  ←→ MOVE  SPACE CONFIRM', cx, this.height / 2 + 95);
     }
@@ -1176,8 +1250,13 @@ export class Game {
     if (Math.floor(this.time * 2) % 2 === 0) {
       ctx.fillStyle = '#888';
       ctx.font = '14px monospace';
-      ctx.fillText('PRESS SPACE TO RETRY', this.width / 2, this.height / 2 + 60);
-      ctx.fillText('PRESS ESC FOR MENU', this.width / 2, this.height / 2 + 80);
+      if (this.input.isMobile) {
+        ctx.fillText('TAP TO RETRY', this.width / 2, this.height / 2 + 60);
+        ctx.fillText('DOUBLE TAP FOR MENU', this.width / 2, this.height / 2 + 80);
+      } else {
+        ctx.fillText('PRESS SPACE TO RETRY', this.width / 2, this.height / 2 + 60);
+        ctx.fillText('PRESS ESC FOR MENU', this.width / 2, this.height / 2 + 80);
+      }
     }
   }
 

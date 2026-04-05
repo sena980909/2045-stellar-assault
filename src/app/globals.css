@@ -27,6 +27,11 @@ html, body {
   -webkit-user-select: none;
   user-select: none;
   touch-action: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 canvas {
