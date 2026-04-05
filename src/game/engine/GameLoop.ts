@@ -150,13 +150,20 @@ export class Game {
     if (this.input.wasPressed('F5')) this.debug.invincible = !this.debug.invincible;
     if (this.input.wasPressed('F6')) this.debug.showObjectCount = !this.debug.showObjectCount;
     if (this.input.wasPressed('KeyM')) this.sound.toggleMute();
-    // Dynamic stage skip: Digit1-9 (supports up to 9 stages)
+    // Stage skip only from menu or playing states (not enterName/gameOver/victory)
+    if (this.state !== 'menu' && this.state !== 'playing') return;
+    // Dynamic stage skip: Digit1-9 + Digit0 for stage 10
     for (let i = 1; i <= 9; i++) {
       if (this.input.wasPressed(`Digit${i}`) && i <= this.stageManager.totalStages) {
         this.stageManager.skipToStage(i - 1);
         this.startGame();
         return;
       }
+    }
+    if (this.input.wasPressed('Digit0') && this.stageManager.totalStages >= 10) {
+      this.stageManager.skipToStage(9);
+      this.startGame();
+      return;
     }
   }
 
@@ -268,7 +275,10 @@ export class Game {
       const enemy = createEnemy(spawn.type, spawn.x, -30);
       if (diff) {
         if (diff.enemyHpMultiplier) { enemy.hp = Math.round(enemy.hp * diff.enemyHpMultiplier); enemy.maxHp = enemy.hp; }
-        if (diff.enemySpeedMultiplier) { enemy.vy *= diff.enemySpeedMultiplier; }
+        if (diff.enemySpeedMultiplier) {
+          enemy.type = { ...enemy.type, speed: enemy.type.speed * diff.enemySpeedMultiplier };
+          enemy.vy = enemy.type.speed;
+        }
       }
       this.enemies.push(enemy);
     }

@@ -25,7 +25,7 @@ const stage3: StageDefinition = {
   ],
   boss: {
     name: 'NEXUS PRIME',
-    hp: 2000,
+    hp: 1000,
     width: 96,
     height: 64,
     score: 20000,
@@ -34,9 +34,9 @@ const stage3: StageDefinition = {
     enterY: 50,
     phases: [
       { hpThreshold: 1.0, pattern: 'radial', shootInterval: 0.6, speed: 90 },
-      { hpThreshold: 0.7, pattern: 'spiral', shootInterval: 0.08, speed: 120 },
+      { hpThreshold: 0.7, pattern: 'spiral', shootInterval: 0.2, speed: 120 },
       { hpThreshold: 0.4, pattern: 'aimed', shootInterval: 0.3, speed: 160 },
-      { hpThreshold: 0.15, pattern: 'fury', shootInterval: 0.07, speed: 180 },
+      { hpThreshold: 0.15, pattern: 'fury', shootInterval: 0.12, speed: 180 },
     ],
   },
   bgColor1: '#110000',

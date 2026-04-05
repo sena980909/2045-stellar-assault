@@ -63,7 +63,7 @@ const stage5: StageDefinition = {
   ],
   boss: {
     name: 'CRYO SENTINEL',
-    hp: 3000,
+    hp: 1400,
     width: 104,
     height: 72,
     score: 40000,

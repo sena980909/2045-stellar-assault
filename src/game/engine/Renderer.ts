@@ -452,9 +452,14 @@ function renderStageClear(game: Game, ctx: CanvasRenderingContext2D) {
   ctx.shadowBlur = 20;
   ctx.fillStyle = '#00ff88';
   ctx.font = 'bold 32px monospace';
-  ctx.fillText('STAGE CLEAR', game.width / 2, game.height / 2 - 30);
+  ctx.fillText('STAGE CLEAR', game.width / 2, game.height / 2 - 40);
 
   ctx.shadowBlur = 0;
+  ctx.fillStyle = '#88ccaa';
+  ctx.font = '14px monospace';
+  const stageName = `${game.stageManager.currentStage.name} — ${game.stageManager.currentStage.subtitle}`;
+  ctx.fillText(stageName, game.width / 2, game.height / 2 - 12);
+
   ctx.fillStyle = '#ffffff';
   ctx.font = '16px monospace';
   ctx.fillText(`SCORE: ${game.player.score.toLocaleString()}`, game.width / 2, game.height / 2 + 10);

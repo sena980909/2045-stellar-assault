@@ -64,7 +64,7 @@ const stage9: StageDefinition = {
   ],
   boss: {
     name: 'HIVE QUEEN',
-    hp: 5000,
+    hp: 2000,
     width: 100,
     height: 72,
     score: 80000,
@@ -82,7 +82,7 @@ const stage9: StageDefinition = {
   bgColor2: '#0a1a08',
   starSpeed: 1.0,
   difficulty: { enemyHpMultiplier: 1.7, enemySpeedMultiplier: 1.2, bossHpMultiplier: 1.1 },
-  itemDrop: { dropChance: 0.18, weights: { power: 2, bomb: 5, speed: 3 } },
+  itemDrop: { dropChance: 0.18, weights: { power: 4, bomb: 4, speed: 2 } },
   victoryText: ['THE HIVE FALLS SILENT.', 'THE MACHINES RUST AND CRUMBLE.'],
 };
 

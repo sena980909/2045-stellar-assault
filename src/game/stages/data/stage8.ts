@@ -74,7 +74,7 @@ const stage8: StageDefinition = {
   ],
   boss: {
     name: 'WARP KING',
-    hp: 4500,
+    hp: 1800,
     width: 96,
     height: 68,
     score: 70000,

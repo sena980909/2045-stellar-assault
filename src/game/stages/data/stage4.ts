@@ -68,7 +68,7 @@ const stage4: StageDefinition = {
   ],
   boss: {
     name: 'VOID WALKER',
-    hp: 2500,
+    hp: 1200,
     width: 100,
     height: 68,
     score: 30000,

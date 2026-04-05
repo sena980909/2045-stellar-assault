@@ -146,7 +146,7 @@ const stage7: StageDefinition = {
   ],
   boss: {
     name: 'SINGULARITY',
-    hp: 4000,
+    hp: 1600,
     width: 104,
     height: 72,
     score: 40000,

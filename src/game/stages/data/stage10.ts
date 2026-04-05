@@ -73,13 +73,13 @@ const stage10: StageDefinition = {
   bgColor2: '#200005',
   starSpeed: 2.0,
   difficulty: {
-    enemyHpMultiplier: 2.0,
+    enemyHpMultiplier: 1.8,
     enemySpeedMultiplier: 1.3,
     bossHpMultiplier: 1.2,
   },
   itemDrop: {
     dropChance: 0.20,
-    weights: { power: 2, bomb: 6, speed: 2 },
+    weights: { power: 4, bomb: 4, speed: 2 },
   },
   victoryText: [
     'THE OMEGA CORE IS DESTROYED.',
@@ -200,7 +200,7 @@ const stage10: StageDefinition = {
   ],
   boss: {
     name: 'OMEGA PRIME',
-    hp: 8000,
+    hp: 3000,
     width: 110,
     height: 80,
     score: 50000,
@@ -210,7 +210,7 @@ const stage10: StageDefinition = {
     phases: [
       { hpThreshold: 1.0,  pattern: 'omega_burst', shootInterval: 0.5,  speed: 80  },
       { hpThreshold: 0.75, pattern: 'spread',      shootInterval: 0.6,  speed: 100 },
-      { hpThreshold: 0.5,  pattern: 'omega_rain',  shootInterval: 0.08, speed: 130 },
+      { hpThreshold: 0.5,  pattern: 'omega_rain',  shootInterval: 0.15, speed: 130 },
       { hpThreshold: 0.25, pattern: 'aimed',        shootInterval: 0.25, speed: 160 },
       { hpThreshold: 0.1,  pattern: 'fury',         shootInterval: 0.05, speed: 180 },
     ],
