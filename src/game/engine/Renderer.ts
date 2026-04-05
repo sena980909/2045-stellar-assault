@@ -206,7 +206,7 @@ function renderGameWorld(game: Game, ctx: CanvasRenderingContext2D) {
   if (game.boss && game.boss.active) {
     drawBoss(ctx, game.boss, game.time);
   }
-  if (game.state !== 'gameOver') {
+  if (game.state !== 'gameOver' && !game.respawning) {
     drawPlayer(ctx, game.player, game.time);
   }
 

@@ -15,7 +15,7 @@ import {
 import { InputManager } from './InputManager';
 import { render } from './Renderer';
 import { checkCollision, checkCollisionWithHitbox, isOutOfBounds } from './CollisionSystem';
-import { createPlayer, updatePlayer, playerShoot, killPlayer, getPlayerHitbox } from '../entities/Player';
+import { createPlayer, updatePlayer, playerShoot, getPlayerHitbox } from '../entities/Player';
 import { createEnemy, updateEnemy, enemyShoot, registerEnemyTypes } from '../entities/Enemy';
 import { createBoss, updateBoss, bossShoot } from '../entities/Boss';
 import { updateBullet } from '../entities/Bullet';
@@ -54,6 +54,8 @@ export class Game {
   stageTransitionPhase: 'none' | 'clear' | 'name' | 'go' = 'none';
   slowMo = 0;
   bossWarningTimer = 0;
+  respawnTimer = 0;
+  respawning = false;
 
   // Combo system
   comboCount = 0;
@@ -181,6 +183,8 @@ export class Game {
     this.bombActive = false;
     this.bombTimer = 0;
     this.screenShake = 0;
+    this.respawning = false;
+    this.respawnTimer = 0;
     this.comboCount = 0;
     this.comboTimer = 0;
     this.maxCombo = 0;
@@ -222,14 +226,30 @@ export class Game {
     // Boss warning timer
     if (this.bossWarningTimer > 0) this.bossWarningTimer -= dt;
 
+    // Respawn delay
+    if (this.respawning) {
+      this.respawnTimer -= dt;
+      if (this.respawnTimer <= 0) {
+        this.doRespawn();
+      }
+    }
+
+    // Slide-up after respawn (player starts below screen)
+    if (!this.respawning && this.player.y > this.height - 80) {
+      this.player.y -= 200 * dt; // slide up smoothly
+      if (this.player.y < this.height - 80) this.player.y = this.height - 80;
+    }
+
     // Player
     if (this.debug.invincible) {
       this.player.invincible = true;
       this.player.invincibleTimer = 999;
     }
-    updatePlayer(this.player, this.input.moveX, this.input.moveY, true, dt, this.width, this.height, this.input.isFocused);
+    if (!this.respawning) {
+      updatePlayer(this.player, this.input.moveX, this.input.moveY, true, dt, this.width, this.height, this.input.isFocused);
+    }
 
-    const newBullets = playerShoot(this.player);
+    const newBullets = this.respawning ? [] : playerShoot(this.player);
     if (newBullets.length > 0) {
       this.bullets.push(...newBullets);
       this.sound.playShoot();
@@ -558,29 +578,46 @@ export class Game {
   private onPlayerDeath() {
     const px = this.player.x + this.player.width / 2;
     const py = this.player.y + this.player.height / 2;
-    const prevPower = this.player.power;
 
     this.spawnBigExplosion(px, py);
     this.sound.playHit();
     this.screenShake = 0.5;
     this.screenFlash = 0.6;
     this.particles.push(...createParticles(px, py, 15, '#ff4444'));
+    this.sound.playExplosion();
 
-    const gameOver = killPlayer(this.player, this.width, this.height);
-    if (gameOver) {
+    this.player.lives--;
+    if (this.player.lives <= 0) {
+      this.player.lives = 0;
       this.state = 'gameOver';
       this.saveHighScore();
       this.sound.stopBgm();
       this.sound.playGameOver();
     } else {
+      // Start respawn delay — player is "dead" for 1.2 seconds
+      this.respawning = true;
+      this.respawnTimer = 1.2;
+      this.player.invincible = true;
+      this.player.invincibleTimer = 99; // stay invincible during respawn
+      // Hide player off-screen during death
+      this.player.x = -999;
+      this.player.y = -999;
+      // Clear enemy bullets to give breathing room
       for (const b of this.bullets) {
         if (!b.isPlayer) b.active = false;
       }
-      if (prevPower > this.player.power) {
-        this.spawnFloatingText(px, py - 30, 'POWER LOST!', '#ff4444');
-      }
-      this.sound.playExplosion();
     }
+  }
+
+  private doRespawn() {
+    this.respawning = false;
+    this.player.power = 1;
+    this.player.speed = 4.5;
+    this.player.x = this.width / 2 - this.player.width / 2;
+    this.player.y = this.height + 20; // start below screen
+    this.player.invincible = true;
+    this.player.invincibleTimer = 2.5;
+    this.spawnFloatingText(this.width / 2, this.height - 120, 'POWER LOST!', '#ff4444');
   }
 
   // ===== PAUSED =====
