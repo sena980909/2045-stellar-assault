@@ -1,12 +1,29 @@
 // ===== INPUT MANAGER =====
 
+interface TouchJoystick {
+  id: number;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+}
+
 export class InputManager {
   keys: Set<string> = new Set();
-  private touchStartPos: { x: number; y: number } | null = null;
-  private touchCurrentPos: { x: number; y: number } | null = null;
-  private canvas: HTMLCanvasElement | null = null;
   justPressed: Set<string> = new Set();
   private prevKeys: Set<string> = new Set();
+  private canvas: HTMLCanvasElement | null = null;
+
+  // Touch state
+  private joystick: TouchJoystick | null = null;
+  private touchMoveX = 0;
+  private touchMoveY = 0;
+  isMobile = false;
+
+  // Virtual button states
+  touchBomb = false;
+  touchFocus = false;
+  private touchTap = false; // for menu start
 
   // Store bound handlers for cleanup
   private onKeyDown: ((e: KeyboardEvent) => void) | null = null;
@@ -17,8 +34,14 @@ export class InputManager {
   private onTouchMove: ((e: TouchEvent) => void) | null = null;
   private onTouchEnd: ((e: TouchEvent) => void) | null = null;
 
+  // Button layout (in game coordinates 400x700)
+  readonly bombBtn = { x: 400 - 65, y: 700 - 65, r: 28 };
+  readonly focusBtn = { x: 400 - 65, y: 700 - 130, r: 24 };
+  readonly joystickArea = { maxX: 200 }; // left half for joystick
+
   init(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     this.onKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
@@ -38,31 +61,90 @@ export class InputManager {
 
     this.onTouchStart = (e: TouchEvent) => {
       e.preventDefault();
-      const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
-      this.touchStartPos = {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top,
-      };
-      this.touchCurrentPos = { ...this.touchStartPos };
-      this.keys.add('Space');
+      const scaleX = 400 / rect.width;
+      const scaleY = 700 / rect.height;
+
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const gx = (touch.clientX - rect.left) * scaleX;
+        const gy = (touch.clientY - rect.top) * scaleY;
+
+        // Check bomb button
+        if (this.hitCircle(gx, gy, this.bombBtn)) {
+          this.touchBomb = true;
+          continue;
+        }
+
+        // Check focus button
+        if (this.hitCircle(gx, gy, this.focusBtn)) {
+          this.touchFocus = true;
+          continue;
+        }
+
+        // Joystick (left side or anywhere not on buttons)
+        if (!this.joystick) {
+          this.joystick = {
+            id: touch.identifier,
+            startX: gx,
+            startY: gy,
+            currentX: gx,
+            currentY: gy,
+          };
+        }
+      }
+
+      // Tap for menu start
+      this.touchTap = true;
     };
 
     this.onTouchMove = (e: TouchEvent) => {
       e.preventDefault();
-      const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
-      this.touchCurrentPos = {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top,
-      };
+      const scaleX = 400 / rect.width;
+      const scaleY = 700 / rect.height;
+
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const gx = (touch.clientX - rect.left) * scaleX;
+        const gy = (touch.clientY - rect.top) * scaleY;
+
+        if (this.joystick && touch.identifier === this.joystick.id) {
+          this.joystick.currentX = gx;
+          this.joystick.currentY = gy;
+        }
+      }
     };
 
     this.onTouchEnd = (e: TouchEvent) => {
       e.preventDefault();
-      this.touchStartPos = null;
-      this.touchCurrentPos = null;
-      this.keys.delete('Space');
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = 400 / rect.width;
+      const scaleY = 700 / rect.height;
+
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const gx = (touch.clientX - rect.left) * scaleX;
+        const gy = (touch.clientY - rect.top) * scaleY;
+
+        // Release joystick
+        if (this.joystick && touch.identifier === this.joystick.id) {
+          this.joystick = null;
+          this.touchMoveX = 0;
+          this.touchMoveY = 0;
+        }
+
+        // Release buttons - check if any remaining touch is on button
+        this.touchBomb = false;
+        this.touchFocus = false;
+        for (let j = 0; j < e.touches.length; j++) {
+          const remaining = e.touches[j];
+          const rx = (remaining.clientX - rect.left) * scaleX;
+          const ry = (remaining.clientY - rect.top) * scaleY;
+          if (this.hitCircle(rx, ry, this.bombBtn)) this.touchBomb = true;
+          if (this.hitCircle(rx, ry, this.focusBtn)) this.touchFocus = true;
+        }
+      }
     };
 
     window.addEventListener('keydown', this.onKeyDown);
@@ -74,6 +156,12 @@ export class InputManager {
     canvas.addEventListener('touchend', this.onTouchEnd, { passive: false });
   }
 
+  private hitCircle(x: number, y: number, btn: { x: number; y: number; r: number }): boolean {
+    const dx = x - btn.x;
+    const dy = y - btn.y;
+    return dx * dx + dy * dy <= (btn.r + 10) * (btn.r + 10); // extra padding
+  }
+
   update() {
     this.justPressed.clear();
     for (const key of this.keys) {
@@ -82,6 +170,21 @@ export class InputManager {
       }
     }
     this.prevKeys = new Set(this.keys);
+
+    // Update joystick analog values
+    if (this.joystick) {
+      const dx = this.joystick.currentX - this.joystick.startX;
+      const dy = this.joystick.currentY - this.joystick.startY;
+      const deadzone = 8;
+      this.touchMoveX = Math.abs(dx) > deadzone ? Math.max(-1, Math.min(1, dx / 50)) : 0;
+      this.touchMoveY = Math.abs(dy) > deadzone ? Math.max(-1, Math.min(1, dy / 50)) : 0;
+    }
+
+    // Handle touch tap as Space press (for menus)
+    if (this.touchTap) {
+      this.justPressed.add('Space');
+      this.touchTap = false;
+    }
   }
 
   isDown(key: string): boolean {
@@ -96,12 +199,7 @@ export class InputManager {
     let dx = 0;
     if (this.keys.has('ArrowLeft') || this.keys.has('KeyA')) dx -= 1;
     if (this.keys.has('ArrowRight') || this.keys.has('KeyD')) dx += 1;
-
-    if (this.touchStartPos && this.touchCurrentPos) {
-      const diffX = this.touchCurrentPos.x - this.touchStartPos.x;
-      if (Math.abs(diffX) > 10) dx = Math.sign(diffX);
-    }
-
+    if (this.touchMoveX !== 0) dx = this.touchMoveX;
     return dx;
   }
 
@@ -109,12 +207,7 @@ export class InputManager {
     let dy = 0;
     if (this.keys.has('ArrowUp') || this.keys.has('KeyW')) dy -= 1;
     if (this.keys.has('ArrowDown') || this.keys.has('KeyS')) dy += 1;
-
-    if (this.touchStartPos && this.touchCurrentPos) {
-      const diffY = this.touchCurrentPos.y - this.touchStartPos.y;
-      if (Math.abs(diffY) > 10) dy = Math.sign(diffY);
-    }
-
+    if (this.touchMoveY !== 0) dy = this.touchMoveY;
     return dy;
   }
 
@@ -123,11 +216,19 @@ export class InputManager {
   }
 
   get isBombing(): boolean {
-    return this.wasPressed('KeyX') || this.wasPressed('KeyB');
+    return this.wasPressed('KeyX') || this.wasPressed('KeyB') || this.touchBomb;
   }
 
   get isFocused(): boolean {
-    return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
+    return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.touchFocus;
+  }
+
+  get hasJoystick(): boolean {
+    return this.joystick !== null;
+  }
+
+  get joystickPos(): { startX: number; startY: number; currentX: number; currentY: number } | null {
+    return this.joystick;
   }
 
   destroy() {
@@ -143,5 +244,88 @@ export class InputManager {
     this.keys.clear();
     this.justPressed.clear();
     this.prevKeys.clear();
+  }
+
+  drawMobileUI(ctx: CanvasRenderingContext2D, time: number) {
+    if (!this.isMobile) return;
+
+    ctx.save();
+
+    // === Virtual Joystick ===
+    if (this.joystick) {
+      // Base circle
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(this.joystick.startX, this.joystick.startY, 45, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Thumb
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = '#00ccff';
+      ctx.beginPath();
+      const thumbX = this.joystick.startX + this.touchMoveX * 30;
+      const thumbY = this.joystick.startY + this.touchMoveY * 30;
+      ctx.arc(thumbX, thumbY, 18, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = '#00ccff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(thumbX, thumbY, 18, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      // Hint: show joystick area
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('DRAG TO MOVE', 100, 650);
+    }
+
+    // === Bomb Button ===
+    const bb = this.bombBtn;
+    ctx.globalAlpha = this.touchBomb ? 0.7 : 0.3;
+    ctx.fillStyle = this.touchBomb ? '#ff4444' : '#441111';
+    ctx.beginPath();
+    ctx.arc(bb.x, bb.y, bb.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = this.touchBomb ? 1.0 : 0.5;
+    ctx.beginPath();
+    ctx.arc(bb.x, bb.y, bb.r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.globalAlpha = this.touchBomb ? 1.0 : 0.6;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('B', bb.x, bb.y);
+
+    // === Focus Button ===
+    const fb = this.focusBtn;
+    ctx.globalAlpha = this.touchFocus ? 0.7 : 0.25;
+    ctx.fillStyle = this.touchFocus ? '#00ccff' : '#112233';
+    ctx.beginPath();
+    ctx.arc(fb.x, fb.y, fb.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#00ccff';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = this.touchFocus ? 1.0 : 0.4;
+    ctx.beginPath();
+    ctx.arc(fb.x, fb.y, fb.r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.globalAlpha = this.touchFocus ? 1.0 : 0.5;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('F', fb.x, fb.y);
+
+    ctx.restore();
   }
 }

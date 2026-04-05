@@ -187,7 +187,9 @@ export class Game {
     }
 
     // Bomb
-    if (this.input.isBombing && this.player.bombs > 0 && !this.bombActive) {
+    const bombPressed = this.input.isBombing;
+    if (bombPressed) this.input.touchBomb = false; // consume touch bomb
+    if (bombPressed && this.player.bombs > 0 && !this.bombActive) {
       this.player.bombs--;
       this.bombActive = true;
       this.bombTimer = 0.8;
@@ -603,6 +605,11 @@ export class Game {
         break;
     }
 
+    // Mobile virtual controls (stable layer, no shake)
+    if (this.state === 'playing') {
+      this.input.drawMobileUI(ctx, this.time);
+    }
+
     // Debug info (stable, no shake)
     if (this.debug.showFps) {
       ctx.fillStyle = '#666';
@@ -643,15 +650,21 @@ export class Game {
     if (Math.floor(this.time * 2) % 2 === 0) {
       ctx.fillStyle = '#ffffff';
       ctx.font = '18px monospace';
-      ctx.fillText('PRESS SPACE TO START', cx, cy + 40);
+      ctx.fillText(this.input.isMobile ? 'TAP TO START' : 'PRESS SPACE TO START', cx, cy + 40);
     }
 
     // Controls
     ctx.fillStyle = '#556688';
     ctx.font = '12px monospace';
-    ctx.fillText('WASD / ARROWS - MOVE', cx, cy + 90);
-    ctx.fillText('X - BOMB  |  SHIFT - FOCUS', cx, cy + 108);
-    ctx.fillText('P / ESC - PAUSE  |  AUTO SHOOT', cx, cy + 126);
+    if (this.input.isMobile) {
+      ctx.fillText('DRAG - MOVE  |  AUTO SHOOT', cx, cy + 90);
+      ctx.fillText('B BUTTON - BOMB', cx, cy + 108);
+      ctx.fillText('F BUTTON - FOCUS (SLOW + SMALL HIT)', cx, cy + 126);
+    } else {
+      ctx.fillText('WASD / ARROWS - MOVE', cx, cy + 90);
+      ctx.fillText('X - BOMB  |  SHIFT - FOCUS', cx, cy + 108);
+      ctx.fillText('P / ESC - PAUSE  |  AUTO SHOOT', cx, cy + 126);
+    }
 
     // High score
     if (this.highScore > 0) {
@@ -659,11 +672,6 @@ export class Game {
       ctx.font = '14px monospace';
       ctx.fillText(`HIGH SCORE: ${this.highScore.toLocaleString()}`, cx, cy + 165);
     }
-
-    // Mobile hint
-    ctx.fillStyle = '#334455';
-    ctx.font = '11px monospace';
-    ctx.fillText('TOUCH TO PLAY ON MOBILE', cx, this.height - 30);
 
     ctx.restore();
   }
