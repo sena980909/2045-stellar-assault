@@ -77,7 +77,7 @@ const stage10: StageDefinition = {
   },
   itemDrop: {
     dropChance: 0.20,
-    weights: { power: 2, bomb: 3, speed: 2, hp: 3 },
+    weights: { power: 1, bomb: 3, speed: 2, hp: 3 },
   },
   victoryText: [
     'THE OMEGA CORE IS DESTROYED.',

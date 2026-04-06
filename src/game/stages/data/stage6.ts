@@ -51,7 +51,7 @@ const stage6: StageDefinition = {
   },
   itemDrop: {
     dropChance: 0.14,
-    weights: { power: 2, bomb: 3, speed: 2, hp: 2 },
+    weights: { power: 1, bomb: 3, speed: 2, hp: 2 },
   },
   victoryText: [
     'THE SOLAR STORM SUBSIDES.',

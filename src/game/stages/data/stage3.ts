@@ -43,7 +43,7 @@ const stage3: StageDefinition = {
   bgColor1: '#110000',
   bgColor2: '#110011',
   starSpeed: 1.6,
-  itemDrop: { dropChance: 0.14, weights: { power: 2, bomb: 2, speed: 2, hp: 2 } },
+  itemDrop: { dropChance: 0.14, weights: { power: 1, bomb: 2, speed: 2, hp: 2 } },
 };
 
 export default stage3;
