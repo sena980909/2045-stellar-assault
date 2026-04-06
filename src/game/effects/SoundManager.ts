@@ -290,6 +290,10 @@ export class SoundManager {
       try { n.disconnect(); } catch { /* ignore */ }
     }
     this.bgm.nodes = [];
+    // Restore bgmGain in case it was paused (set to 0)
+    if (this.bgmGain && this.ctx) {
+      this.bgmGain.gain.setValueAtTime(0.55, this.ctx.currentTime);
+    }
   }
 
   pauseBgm() {
