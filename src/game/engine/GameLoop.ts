@@ -530,7 +530,9 @@ export class Game {
             this.spawnExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.type.color);
             this.sound.playExplosion();
             const dropCfg = this.stageManager.currentStage.itemDrop;
-            const dropChance = dropCfg?.dropChance ?? 0.15;
+            const baseDropChance = dropCfg?.dropChance ?? 0.15;
+            // Stronger enemies (higher score) have higher drop chance
+            const dropChance = Math.min(0.6, baseDropChance + enemy.score / 2500);
             if (Math.random() < dropChance) {
               this.items.push(createItem(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, this.getItemType()));
             }
@@ -582,9 +584,9 @@ export class Game {
           enemy.active = false;
           this.player.score += enemy.score;
           this.spawnExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.type.color);
-          // Drop item on collision kill
+          // Drop item on collision kill (stronger enemies drop more)
           const dropCfg = this.stageManager.currentStage.itemDrop;
-          const dropChance = dropCfg?.dropChance ?? 0.15;
+          const dropChance = Math.min(0.6, (dropCfg?.dropChance ?? 0.15) + enemy.score / 2500);
           if (Math.random() < dropChance) {
             this.items.push(createItem(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, this.getItemType()));
           }
