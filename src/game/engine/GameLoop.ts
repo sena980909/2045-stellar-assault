@@ -681,13 +681,17 @@ export class Game {
     this.particles.push(...createParticles(px, py, 8, '#ff4444'));
 
     this.player.hp--;
-    // Power penalty: lose 1 level on hit (min 1)
+    // Penalties on hit: power -1, speed -1
+    const penalties: string[] = ['HP -1'];
     if (this.player.power > 1) {
       this.player.power--;
-      this.spawnFloatingText(px, py - 20, `HP -1  PWR -1`, '#ff4444');
-    } else {
-      this.spawnFloatingText(px, py - 20, `HP -1`, '#ff4444');
+      penalties.push('PWR -1');
     }
+    if (this.player.speed > 4.5) {
+      this.player.speed = Math.max(4.5, this.player.speed - 0.4);
+      penalties.push('SPD -1');
+    }
+    this.spawnFloatingText(px, py - 20, penalties.join('  '), '#ff4444');
 
     if (this.player.hp <= 0) {
       this.player.hp = 0;
