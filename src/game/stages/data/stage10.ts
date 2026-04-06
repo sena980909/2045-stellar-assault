@@ -71,9 +71,9 @@ const stage10: StageDefinition = {
   bgColor2: '#200005',
   starSpeed: 2.0,
   difficulty: {
-    enemyHpMultiplier: 1.65,
-    enemySpeedMultiplier: 1.25,
-    bossHpMultiplier: 1.1,
+    enemyHpMultiplier: 1.50,
+    enemySpeedMultiplier: 1.2,
+    bossHpMultiplier: 1.05,
   },
   itemDrop: {
     dropChance: 0.20,
@@ -208,9 +208,9 @@ const stage10: StageDefinition = {
     phases: [
       { hpThreshold: 1.0,  pattern: 'omega_burst', shootInterval: 0.5,  speed: 80  },
       { hpThreshold: 0.75, pattern: 'spread',      shootInterval: 0.6,  speed: 100 },
-      { hpThreshold: 0.5,  pattern: 'omega_rain',  shootInterval: 0.15, speed: 130 },
-      { hpThreshold: 0.25, pattern: 'aimed',        shootInterval: 0.25, speed: 160 },
-      { hpThreshold: 0.1,  pattern: 'fury',         shootInterval: 0.1, speed: 180 },
+      { hpThreshold: 0.5,  pattern: 'omega_rain',  shootInterval: 0.25, speed: 120 },
+      { hpThreshold: 0.25, pattern: 'aimed',        shootInterval: 0.25, speed: 150 },
+      { hpThreshold: 0.1,  pattern: 'fury',         shootInterval: 0.15, speed: 170 },
     ],
   },
 };

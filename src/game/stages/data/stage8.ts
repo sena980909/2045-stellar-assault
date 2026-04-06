@@ -67,8 +67,8 @@ const stage8: StageDefinition = {
     { time: 41, enemies: [{ type: 'heavy', count: 2, delay: 0.45 }, { type: 'warper', count: 5, delay: 0.2 }, { type: 'scout', count: 8, delay: 0.08 }] },
     { time: 45, enemies: [{ type: 'warper', count: 6, delay: 0.15 }, { type: 'fighter', count: 4, delay: 0.22 }] },
     // === Phase 5: Pre-boss warp storm (49~56s) ===
-    { time: 49, enemies: [{ type: 'warper', count: 8, delay: 0.12 }, { type: 'kamikaze', count: 5, delay: 0.15 }] },
-    { time: 53, enemies: [{ type: 'warper', count: 6, delay: 0.14 }, { type: 'scout', count: 5, delay: 0.1 }] },
+    { time: 49, enemies: [{ type: 'warper', count: 6, delay: 0.15 }, { type: 'kamikaze', count: 4, delay: 0.18 }] },
+    { time: 53, enemies: [{ type: 'warper', count: 5, delay: 0.18 }, { type: 'scout', count: 4, delay: 0.12 }] },
     // === Boss trigger ===
     { time: 60, enemies: [] },
   ],
@@ -85,13 +85,13 @@ const stage8: StageDefinition = {
       { hpThreshold: 1.0, pattern: 'spread', shootInterval: 0.5, speed: 110 },
       { hpThreshold: 0.7, pattern: 'barrage', shootInterval: 0.2, speed: 140 },
       { hpThreshold: 0.4, pattern: 'spiral', shootInterval: 0.18, speed: 170 },
-      { hpThreshold: 0.15, pattern: 'fury', shootInterval: 0.12, speed: 200 },
+      { hpThreshold: 0.15, pattern: 'fury', shootInterval: 0.18, speed: 180 },
     ],
   },
   bgColor1: '#001a1a',
   bgColor2: '#002020',
   starSpeed: 2.5,
-  difficulty: { enemyHpMultiplier: 1.45, enemySpeedMultiplier: 1.15 },
+  difficulty: { enemyHpMultiplier: 1.35, enemySpeedMultiplier: 1.1 },
   itemDrop: { dropChance: 0.16, weights: { power: 4, bomb: 3, speed: 2, hp: 3 } },
   victoryText: ['THE WARP CORRIDOR STABILIZES.', 'NORMAL SPACE BECKONS AHEAD.'],
 };

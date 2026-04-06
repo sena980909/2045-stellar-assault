@@ -63,9 +63,9 @@ const stage7: StageDefinition = {
   bgColor2: '#120020',
   starSpeed: 0.8,
   difficulty: {
-    enemyHpMultiplier: 1.35,
-    enemySpeedMultiplier: 1.15,
-    bossHpMultiplier: 1.1,
+    enemyHpMultiplier: 1.30,
+    enemySpeedMultiplier: 1.1,
+    bossHpMultiplier: 1.05,
   },
   itemDrop: {
     dropChance: 0.15,

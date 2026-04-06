@@ -39,26 +39,26 @@ const stage9: StageDefinition = {
   name: 'STAGE 9',
   subtitle: 'MACHINE HIVE',
   waves: [
-    // === Phase 1: Drone scouts (2~9s) — swarms from the start ===
-    { time: 2, enemies: [{ type: 'drone_swarm', count: 8, delay: 0.08 }, { type: 'fighter', count: 2, delay: 0.4 }] },
-    { time: 5, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.06 }, { type: 'scout', count: 4, delay: 0.15 }] },
-    { time: 8, enemies: [{ type: 'heavy', count: 2, delay: 0.5 }, { type: 'drone_swarm', count: 8, delay: 0.08 }] },
-    // === Phase 2: Hive awakens (12~22s) — drones + heavies ===
-    { time: 12, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.06 }, { type: 'fighter', count: 3, delay: 0.3 }] },
-    { time: 15, enemies: [{ type: 'heavy', count: 3, delay: 0.4 }, { type: 'drone_swarm', count: 10, delay: 0.07 }] },
-    { time: 19, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.06 }, { type: 'heavy', count: 2, delay: 0.5 }, { type: 'kamikaze', count: 3, delay: 0.2 }] },
+    // === Phase 1: Drone scouts (2~9s) ===
+    { time: 2, enemies: [{ type: 'drone_swarm', count: 5, delay: 0.12 }, { type: 'fighter', count: 2, delay: 0.4 }] },
+    { time: 5, enemies: [{ type: 'drone_swarm', count: 6, delay: 0.1 }, { type: 'scout', count: 4, delay: 0.15 }] },
+    { time: 8, enemies: [{ type: 'heavy', count: 2, delay: 0.5 }, { type: 'drone_swarm', count: 5, delay: 0.12 }] },
+    // === Phase 2: Hive awakens (12~22s) ===
+    { time: 12, enemies: [{ type: 'drone_swarm', count: 6, delay: 0.1 }, { type: 'fighter', count: 3, delay: 0.3 }] },
+    { time: 15, enemies: [{ type: 'heavy', count: 2, delay: 0.4 }, { type: 'drone_swarm', count: 6, delay: 0.1 }] },
+    { time: 19, enemies: [{ type: 'drone_swarm', count: 7, delay: 0.1 }, { type: 'heavy', count: 2, delay: 0.5 }, { type: 'kamikaze', count: 3, delay: 0.2 }] },
     // === Phase 3: Relentless tide (24~34s) ===
-    { time: 24, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.07 }, { type: 'fighter', count: 4, delay: 0.25 }] },
-    { time: 27, enemies: [{ type: 'heavy', count: 3, delay: 0.35 }, { type: 'drone_swarm', count: 8, delay: 0.07 }, { type: 'scout', count: 5, delay: 0.12 }] },
-    { time: 31, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.07 }, { type: 'kamikaze', count: 4, delay: 0.18 }] },
-    { time: 34, enemies: [{ type: 'heavy', count: 2, delay: 0.45 }, { type: 'drone_swarm', count: 8, delay: 0.08 }, { type: 'fighter', count: 3, delay: 0.3 }] },
-    // === Phase 4: Hive overload (38~50s) — massive drone waves ===
-    { time: 38, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.06 }, { type: 'heavy', count: 2, delay: 0.4 }, { type: 'fighter', count: 4, delay: 0.25 }] },
-    { time: 42, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.06 }, { type: 'kamikaze', count: 4, delay: 0.18 }] },
-    { time: 46, enemies: [{ type: 'heavy', count: 3, delay: 0.35 }, { type: 'drone_swarm', count: 8, delay: 0.07 }, { type: 'scout', count: 5, delay: 0.12 }] },
+    { time: 24, enemies: [{ type: 'drone_swarm', count: 7, delay: 0.1 }, { type: 'fighter', count: 3, delay: 0.25 }] },
+    { time: 27, enemies: [{ type: 'heavy', count: 2, delay: 0.4 }, { type: 'drone_swarm', count: 6, delay: 0.1 }, { type: 'scout', count: 4, delay: 0.12 }] },
+    { time: 31, enemies: [{ type: 'drone_swarm', count: 7, delay: 0.1 }, { type: 'kamikaze', count: 3, delay: 0.2 }] },
+    { time: 34, enemies: [{ type: 'heavy', count: 2, delay: 0.45 }, { type: 'drone_swarm', count: 6, delay: 0.12 }, { type: 'fighter', count: 3, delay: 0.3 }] },
+    // === Phase 4: Hive overload (38~50s) ===
+    { time: 38, enemies: [{ type: 'drone_swarm', count: 7, delay: 0.1 }, { type: 'heavy', count: 2, delay: 0.4 }, { type: 'fighter', count: 3, delay: 0.25 }] },
+    { time: 42, enemies: [{ type: 'drone_swarm', count: 7, delay: 0.1 }, { type: 'kamikaze', count: 4, delay: 0.18 }] },
+    { time: 46, enemies: [{ type: 'heavy', count: 2, delay: 0.4 }, { type: 'drone_swarm', count: 6, delay: 0.1 }, { type: 'scout', count: 4, delay: 0.12 }] },
     // === Phase 5: Pre-boss swarm flood (50~58s) ===
-    { time: 50, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.06 }, { type: 'drone_swarm', count: 8, delay: 0.07 }] },
-    { time: 55, enemies: [{ type: 'drone_swarm', count: 10, delay: 0.06 }, { type: 'heavy', count: 2, delay: 0.5 }] },
+    { time: 50, enemies: [{ type: 'drone_swarm', count: 8, delay: 0.1 }, { type: 'fighter', count: 3, delay: 0.25 }] },
+    { time: 55, enemies: [{ type: 'drone_swarm', count: 7, delay: 0.1 }, { type: 'heavy', count: 2, delay: 0.5 }] },
     // === Boss trigger ===
     { time: 63, enemies: [] },
   ],
@@ -81,7 +81,7 @@ const stage9: StageDefinition = {
   bgColor1: '#001a00',
   bgColor2: '#0a1a08',
   starSpeed: 1.0,
-  difficulty: { enemyHpMultiplier: 1.55, enemySpeedMultiplier: 1.15, bossHpMultiplier: 1.05 },
+  difficulty: { enemyHpMultiplier: 1.40, enemySpeedMultiplier: 1.1, bossHpMultiplier: 1.0 },
   itemDrop: { dropChance: 0.18, weights: { power: 4, bomb: 3, speed: 2, hp: 3 } },
   victoryText: ['THE HIVE FALLS SILENT.', 'THE MACHINES RUST AND CRUMBLE.'],
 };
