@@ -228,7 +228,7 @@ export class Game {
     // Dev mode: press Backquote (`) to enter password
     if (this.input.wasPressed('Backquote')) {
       const pw = prompt('DEV PASSWORD:');
-      if (pw === '2045dev') {
+      if (pw === 'St3llar!Adm1n#99') {
         this.devMode = true;
         this.devSelectedStage = 0;
         this.state = 'devSelect';
