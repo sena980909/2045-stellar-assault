@@ -159,6 +159,26 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, player: PlayerState, t
   ctx.lineTo(player.x + player.width + 2, player.y + player.height - 2);
   ctx.stroke();
 
+  // Invincibility shield ring
+  if (player.invincible) {
+    const shieldAlpha = 0.3 + 0.3 * Math.sin(time * 12);
+    const shieldRadius = 22 + 2 * Math.sin(time * 8);
+    ctx.globalAlpha = shieldAlpha;
+    ctx.strokeStyle = '#00ccff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, shieldRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    // Inner ring
+    ctx.globalAlpha = shieldAlpha * 0.5;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, shieldRadius - 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
   // Focus mode hitbox indicator
   if (player.focused) {
     ctx.globalAlpha = 1;
