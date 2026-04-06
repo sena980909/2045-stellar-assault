@@ -705,11 +705,20 @@ export class Game {
 
   // ===== PAUSED =====
   private updatePaused() {
+    // Resume game
     if (this.input.wasPressed('Escape') || this.input.wasPressed('KeyP') || this.input.wasPressed('Space') || this.input.touchPause) {
       if (this.input.touchPause) this.input.touchPause = false;
       this.state = 'playing';
       this.sound.playPause();
       this.sound.resumeBgm();
+      return;
+    }
+    // Quit to menu
+    if (this.input.wasPressed('KeyQ') || this.input.wasPressed('Backspace')) {
+      this.sound.stopBgm();
+      this.sound.playMenuSelect();
+      this.state = 'menu';
+      this.clearAllObjects();
     }
   }
 

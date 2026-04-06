@@ -597,6 +597,24 @@ function renderPause(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.fillText('Press P or ESC to resume', game.width / 2, game.height / 2 + 20);
   }
 
+  if (game.input.isMobile) {
+    // Quit button for mobile
+    const qx = game.width / 2;
+    const qy = game.height / 2 + 110;
+    ctx.fillStyle = 'rgba(255, 50, 50, 0.3)';
+    ctx.fillRect(qx - 60, qy - 15, 120, 30);
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(qx - 60, qy - 15, 120, 30);
+    ctx.fillStyle = '#ff6666';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText('QUIT TO MENU', qx, qy + 5);
+  } else {
+    ctx.fillStyle = '#ff6666';
+    ctx.font = '13px monospace';
+    ctx.fillText('Q - QUIT TO MENU', game.width / 2, game.height / 2 + 44);
+  }
+
   // Volume control in pause menu
   const cx = game.width / 2;
   const volPct = Math.round(game.sound.volume * 100);
