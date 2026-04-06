@@ -2,13 +2,13 @@ import { StageDefinition } from '../../types';
 import { registerEnemyType, registerEnemyPattern } from '../../entities/Enemy';
 import { registerBossPattern } from '../../entities/Boss';
 
-// === Register "warp" movement pattern: straight down but teleports every 2 seconds ===
+// === Register "warp" movement pattern: fast zigzag with occasional dash ===
 registerEnemyPattern('warp', (enemy) => {
-  enemy.vy = enemy.type.speed;
-  enemy.vx = 0;
-  // Every 2 seconds, teleport to a random x position
-  if (enemy.patternTimer % 2 < 0.05) {
-    enemy.x = Math.random() * (400 - enemy.width);
+  enemy.vy = enemy.type.speed * 0.6;
+  enemy.vx = Math.sin(enemy.patternTimer * 3) * 120;
+  // Quick horizontal dash every 3 seconds
+  if (enemy.patternTimer % 3 < 0.1) {
+    enemy.vx = (Math.random() > 0.5 ? 1 : -1) * 200;
   }
 });
 
@@ -92,7 +92,7 @@ const stage8: StageDefinition = {
   bgColor2: '#002020',
   starSpeed: 2.5,
   difficulty: { enemyHpMultiplier: 1.35, enemySpeedMultiplier: 1.1 },
-  itemDrop: { dropChance: 0.18, weights: { power: 4, bomb: 3, speed: 2, hp: 3 } },
+  itemDrop: { dropChance: 0.18, weights: { power: 2, bomb: 3, speed: 2, hp: 3 } },
   victoryText: ['THE WARP CORRIDOR STABILIZES.', 'NORMAL SPACE BECKONS AHEAD.'],
 };
 
