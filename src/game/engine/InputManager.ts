@@ -231,6 +231,12 @@ export class InputManager {
     return this.justPressed.has(key);
   }
 
+  clearAll() {
+    this.keys.clear();
+    this.justPressed.clear();
+    this.prevKeys.clear();
+  }
+
   get moveX(): number {
     let dx = 0;
     if (this.keys.has('ArrowLeft') || this.keys.has('KeyA')) dx -= 1;

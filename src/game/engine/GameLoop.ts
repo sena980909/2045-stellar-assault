@@ -225,16 +225,20 @@ export class Game {
       this.sound.init();
       this.sound.toggleMute();
     }
-    // Dev mode: press Backslash (\) or Backquote (`) to enter password
-    if (this.input.wasPressed('Backslash') || this.input.wasPressed('Backquote')) {
-      const pw = prompt('DEV PASSWORD:');
-      if (pw === process.env.NEXT_PUBLIC_DEV_PASSWORD) {
-        this.devMode = true;
-        this.devSelectedStage = 0;
-        this.state = 'devSelect';
-        this.sound.init();
-        this.sound.playMenuSelect();
-      }
+    // Dev mode: press D on menu to enter password
+    if (this.input.wasPressed('KeyD')) {
+      this.sound.init();
+      setTimeout(() => {
+        const pw = window.prompt('DEV PASSWORD:');
+        if (pw === process.env.NEXT_PUBLIC_DEV_PASSWORD) {
+          this.devMode = true;
+          this.devSelectedStage = 0;
+          this.state = 'devSelect';
+          this.sound.playMenuSelect();
+        }
+        // Clear stuck keys after prompt
+        this.input.clearAll();
+      }, 50);
     }
   }
 
