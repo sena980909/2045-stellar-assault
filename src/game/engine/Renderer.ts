@@ -31,6 +31,9 @@ export function render(game: Game) {
     case 'menu':
       renderMenu(game, ctx);
       break;
+    case 'devSelect':
+      renderDevSelect(game, ctx);
+      break;
     case 'playing':
     case 'paused':
     case 'stageClear':
@@ -234,6 +237,57 @@ function renderMenu(game: Game, ctx: CanvasRenderingContext2D) {
   ctx.strokeStyle = '#446';
   ctx.lineWidth = 1;
   ctx.strokeRect(barX, barY, barW, barH);
+
+  ctx.restore();
+}
+
+function renderDevSelect(game: Game, ctx: CanvasRenderingContext2D) {
+  const cx = game.width / 2;
+  const total = game.stageManager.totalStages;
+
+  ctx.save();
+  ctx.textAlign = 'center';
+
+  // Dark overlay
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, game.width, game.height);
+
+  // Title
+  ctx.fillStyle = '#ff4444';
+  ctx.font = 'bold 24px monospace';
+  ctx.fillText('DEV MODE', cx, 50);
+
+  ctx.fillStyle = '#ff8844';
+  ctx.font = 'bold 16px monospace';
+  ctx.fillText('STAGE SELECT', cx, 78);
+
+  // Stage list
+  const startY = 110;
+  const lineH = 28;
+  for (let i = 0; i < total; i++) {
+    const y = startY + i * lineH;
+    const selected = i === game.devSelectedStage;
+
+    if (selected) {
+      ctx.fillStyle = 'rgba(255, 68, 68, 0.2)';
+      ctx.fillRect(30, y - 16, game.width - 60, lineH - 2);
+    }
+
+    ctx.fillStyle = selected ? '#ff4444' : '#888888';
+    ctx.font = selected ? 'bold 14px monospace' : '13px monospace';
+
+    const stage = game.stageManager.getStageInfo(i);
+    const name = stage ? `${stage.name} - ${stage.subtitle}` : `STAGE ${i + 1}`;
+    const prefix = selected ? '> ' : '  ';
+    ctx.fillText(`${prefix}${name}`, cx, y);
+  }
+
+  // Controls hint
+  const bottomY = game.height - 50;
+  ctx.fillStyle = '#556688';
+  ctx.font = '11px monospace';
+  ctx.fillText('UP/DOWN - SELECT  |  SPACE - START  |  ESC - BACK', cx, bottomY);
+  ctx.fillText('1-0 - QUICK SELECT', cx, bottomY + 16);
 
   ctx.restore();
 }

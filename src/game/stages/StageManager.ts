@@ -51,6 +51,13 @@ export class StageManager {
     }
   }
 
+  getStageInfo(index: number): { name: string; subtitle: string } | null {
+    if (index >= 0 && index < this.stages.length) {
+      return { name: this.stages[index].name, subtitle: this.stages[index].subtitle };
+    }
+    return null;
+  }
+
   update(dt: number, canvasWidth: number): { spawns: { type: string; x: number }[]; spawnBoss: boolean } {
     this.stageTime += dt;
     const stage = this.currentStage;

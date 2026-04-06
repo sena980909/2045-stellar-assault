@@ -1,6 +1,6 @@
 // ===== 2045 SHOOTING GAME - TYPE DEFINITIONS =====
 
-export type GameState = 'menu' | 'playing' | 'paused' | 'stageClear' | 'gameOver' | 'victory' | 'enterName';
+export type GameState = 'menu' | 'playing' | 'paused' | 'stageClear' | 'gameOver' | 'victory' | 'enterName' | 'devSelect';
 
 export interface ScoreEntry {
   name: string;

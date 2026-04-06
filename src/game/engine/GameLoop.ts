@@ -78,6 +78,8 @@ export class Game {
   fpsTimer = 0;
 
   highScore = 0;
+  devMode = false;
+  devSelectedStage = 0;
   private destroyed = false;
 
   width: number;
@@ -142,6 +144,7 @@ export class Game {
       case 'gameOver': this.updateGameOver(dt); break;
       case 'victory': this.updateVictory(); break;
       case 'enterName': this.updateEnterName(dt); break;
+      case 'devSelect': this.updateDevSelect(dt); break;
     }
 
     render(this);
@@ -221,6 +224,59 @@ export class Game {
     if (this.input.wasPressed('KeyM')) {
       this.sound.init();
       this.sound.toggleMute();
+    }
+    // Dev mode: press Backquote (`) to enter password
+    if (this.input.wasPressed('Backquote')) {
+      const pw = prompt('DEV PASSWORD:');
+      if (pw === '2045dev') {
+        this.devMode = true;
+        this.devSelectedStage = 0;
+        this.state = 'devSelect';
+        this.sound.init();
+        this.sound.playMenuSelect();
+      }
+    }
+  }
+
+  // ===== DEV STAGE SELECT =====
+  private updateDevSelect(dt: number) {
+    this.bg.update(dt);
+    const total = this.stageManager.totalStages;
+
+    // Navigate with arrows / WASD
+    if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
+      this.devSelectedStage = (this.devSelectedStage - 1 + total) % total;
+      this.sound.playLetterChange();
+    }
+    if (this.input.wasPressed('ArrowDown') || this.input.wasPressed('KeyS')) {
+      this.devSelectedStage = (this.devSelectedStage + 1) % total;
+      this.sound.playLetterChange();
+    }
+
+    // Number keys for quick select
+    for (let i = 1; i <= 9; i++) {
+      if (this.input.wasPressed(`Digit${i}`) && i <= total) {
+        this.devSelectedStage = i - 1;
+        this.sound.playLetterChange();
+      }
+    }
+    if (this.input.wasPressed('Digit0') && total >= 10) {
+      this.devSelectedStage = 9;
+      this.sound.playLetterChange();
+    }
+
+    // Confirm with Space/Enter
+    if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
+      this.sound.playMenuSelect();
+      this.stageManager.skipToStage(this.devSelectedStage);
+      this.startGame();
+      this.sound.startBgm('stage');
+    }
+
+    // Back to menu with Escape
+    if (this.input.wasPressed('Escape')) {
+      this.state = 'menu';
+      this.sound.playPause();
     }
   }
 
