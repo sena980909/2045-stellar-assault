@@ -679,10 +679,10 @@ export class Game {
     this.particles.push(...createParticles(px, py, 8, '#ff4444'));
 
     this.player.hp--;
-    // Hard power penalty: reset to 1 on hit
+    // Power penalty: lose 1 level on hit (min 1)
     if (this.player.power > 1) {
-      this.player.power = 1;
-      this.spawnFloatingText(px, py - 20, `HP -1  PWR RESET!`, '#ff4444');
+      this.player.power--;
+      this.spawnFloatingText(px, py - 20, `HP -1  PWR -1`, '#ff4444');
     } else {
       this.spawnFloatingText(px, py - 20, `HP -1`, '#ff4444');
     }
