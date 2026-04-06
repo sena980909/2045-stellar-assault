@@ -85,7 +85,7 @@ const stage4: StageDefinition = {
   bgColor2: '#150030',
   starSpeed: 1.2,
   difficulty: { enemyHpMultiplier: 1.2 },
-  itemDrop: { dropChance: 0.16, weights: { power: 1, bomb: 3, speed: 2, hp: 2 } },
+  itemDrop: { dropChance: 0.16, weights: { power: 2, bomb: 3, speed: 2, hp: 2 } },
   victoryText: ['THE VOID WALKER FADES INTO DARKNESS.', 'THE NEBULA GROWS SILENT...'],
 };
 

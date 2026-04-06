@@ -82,7 +82,7 @@ const stage9: StageDefinition = {
   bgColor2: '#0a1a08',
   starSpeed: 1.0,
   difficulty: { enemyHpMultiplier: 1.40, enemySpeedMultiplier: 1.1, bossHpMultiplier: 1.0 },
-  itemDrop: { dropChance: 0.18, weights: { power: 1, bomb: 3, speed: 2, hp: 3 } },
+  itemDrop: { dropChance: 0.18, weights: { power: 2, bomb: 3, speed: 2, hp: 3 } },
   victoryText: ['THE HIVE FALLS SILENT.', 'THE MACHINES RUST AND CRUMBLE.'],
 };
 

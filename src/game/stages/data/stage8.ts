@@ -92,7 +92,7 @@ const stage8: StageDefinition = {
   bgColor2: '#002020',
   starSpeed: 2.5,
   difficulty: { enemyHpMultiplier: 1.35, enemySpeedMultiplier: 1.1 },
-  itemDrop: { dropChance: 0.18, weights: { power: 1, bomb: 3, speed: 2, hp: 3 } },
+  itemDrop: { dropChance: 0.18, weights: { power: 2, bomb: 3, speed: 2, hp: 3 } },
   victoryText: ['THE WARP CORRIDOR STABILIZES.', 'NORMAL SPACE BECKONS AHEAD.'],
 };
 
