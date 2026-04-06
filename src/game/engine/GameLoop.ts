@@ -225,8 +225,8 @@ export class Game {
       this.sound.init();
       this.sound.toggleMute();
     }
-    // Dev mode: press Backquote (`) to enter password
-    if (this.input.wasPressed('Backquote')) {
+    // Dev mode: press Backslash (\) or Backquote (`) to enter password
+    if (this.input.wasPressed('Backslash') || this.input.wasPressed('Backquote')) {
       const pw = prompt('DEV PASSWORD:');
       if (pw === process.env.NEXT_PUBLIC_DEV_PASSWORD) {
         this.devMode = true;
