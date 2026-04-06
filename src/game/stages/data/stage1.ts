@@ -23,7 +23,7 @@ const stage1: StageDefinition = {
   ],
   boss: {
     name: 'SENTINEL MK-I',
-    hp: 800,
+    hp: 600,
     width: 64,
     height: 48,
     score: 5000,
@@ -39,6 +39,7 @@ const stage1: StageDefinition = {
   bgColor1: '#000011',
   bgColor2: '#000522',
   starSpeed: 1,
+  itemDrop: { dropChance: 0.14, weights: { power: 5, bomb: 2, speed: 2, hp: 1 } },
 };
 
 export default stage1;

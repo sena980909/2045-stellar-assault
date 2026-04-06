@@ -22,6 +22,7 @@ export class Background {
   private width: number;
   private height: number;
   private gridOffset = 0;
+  private bgGradient: CanvasGradient | null = null;
 
   constructor(width: number, height: number) {
     this.width = width;
@@ -72,56 +73,59 @@ export class Background {
 
   draw(ctx: CanvasRenderingContext2D, time: number) {
     ctx.save();
-    // Deep space gradient
-    const bg = ctx.createLinearGradient(0, 0, 0, this.height);
-    bg.addColorStop(0, '#000011');
-    bg.addColorStop(0.5, '#000522');
-    bg.addColorStop(1, '#010115');
-    ctx.fillStyle = bg;
+    // Deep space gradient (cached)
+    if (!this.bgGradient) {
+      this.bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
+      this.bgGradient.addColorStop(0, '#000011');
+      this.bgGradient.addColorStop(0.5, '#000522');
+      this.bgGradient.addColorStop(1, '#010115');
+    }
+    ctx.fillStyle = this.bgGradient;
     ctx.fillRect(0, 0, this.width, this.height);
 
-    // Nebulas
+    // Nebulas (simple filled circles — no gradient per frame)
     for (const nebula of this.nebulas) {
-      const grad = ctx.createRadialGradient(nebula.x, nebula.y, 0, nebula.x, nebula.y, nebula.radius);
-      grad.addColorStop(0, nebula.color + '44');
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = nebula.color;
       ctx.beginPath();
       ctx.arc(nebula.x, nebula.y, nebula.radius, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.globalAlpha = 1;
 
-    // Grid lines (futuristic)
+    // Grid lines (futuristic) — batch into single path
     ctx.strokeStyle = 'rgba(0, 80, 180, 0.07)';
     ctx.lineWidth = 1;
+    ctx.beginPath();
     for (let y = this.gridOffset; y < this.height; y += 40) {
-      ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(this.width, y);
-      ctx.stroke();
     }
     for (let x = 0; x < this.width; x += 40) {
-      ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, this.height);
-      ctx.stroke();
     }
+    ctx.stroke();
 
-    // Stars
+    // Stars (no shadowBlur — use colored rects for glow effect)
     for (const star of this.stars) {
-      ctx.save();
-      ctx.globalAlpha = star.brightness * (0.7 + 0.3 * Math.sin(time * 2 + star.x));
+      const alpha = star.brightness * (0.7 + 0.3 * Math.sin(time * 2 + star.x));
+      // Glow layer (larger, dimmer)
+      ctx.globalAlpha = alpha * 0.3;
+      ctx.fillStyle = '#4488ff';
+      ctx.fillRect(star.x - star.size * 0.5, star.y - star.size * 0.5, star.size * 2, star.size * 2);
+      // Core (bright white)
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = '#4488ff';
-      ctx.shadowBlur = star.size * 2;
       ctx.fillRect(star.x, star.y, star.size, star.size);
-      ctx.restore();
     }
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 
   resize(width: number, height: number) {
     this.width = width;
     this.height = height;
+    this.bgGradient = null; // invalidate cached gradient
   }
 }

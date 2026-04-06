@@ -47,11 +47,7 @@ export function drawItem(ctx: CanvasRenderingContext2D, item: ItemData, time: nu
 
   ctx.save();
 
-  // Glow
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 12;
-
-  // Outer ring
+  // Outer ring (no shadowBlur for mobile performance)
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -73,7 +69,6 @@ export function drawItem(ctx: CanvasRenderingContext2D, item: ItemData, time: nu
   ctx.stroke();
 
   // Label
-  ctx.shadowBlur = 0;
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 12px monospace';
   ctx.textAlign = 'center';

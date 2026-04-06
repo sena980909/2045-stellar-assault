@@ -104,6 +104,8 @@ export interface ExplosionData {
   alpha: number;
   color: string;
   active: boolean;
+  ring?: boolean;       // ring explosion style
+  delay?: number;       // delayed start
 }
 
 export interface Particle {
@@ -116,6 +118,10 @@ export interface Particle {
   color: string;
   size: number;
   active: boolean;
+  type?: 'spark' | 'debris' | 'flash'; // particle visual type
+  rotation?: number;
+  rotSpeed?: number;
+  gravity?: number;
 }
 
 export interface PlayerState {

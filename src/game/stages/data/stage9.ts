@@ -64,7 +64,7 @@ const stage9: StageDefinition = {
   ],
   boss: {
     name: 'HIVE QUEEN',
-    hp: 1800,
+    hp: 1350,
     width: 100,
     height: 72,
     score: 80000,

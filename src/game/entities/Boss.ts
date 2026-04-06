@@ -91,7 +91,7 @@ registerBossPattern('aimed', (boss, px, py, mk) => {
   const cy = boss.y + boss.height;
   const speed = 320;
   const dx = (px + 16) - cx;
-  const dy = (py + 16) - cy;
+  const dy = Math.max(10, (py + 16) - cy); // ensure bullets go downward
   const dist = Math.sqrt(dx * dx + dy * dy) || 1;
   const bullets: BulletData[] = [];
   for (let i = -1; i <= 1; i++) {
@@ -137,7 +137,7 @@ registerBossPattern('fury', (boss, px, py, mk) => {
   ];
   if (Math.floor(boss.patternTimer * 14) % 3 === 0) {
     const dx = (px + 16) - cx;
-    const dy = (py + 16) - cy;
+    const dy = Math.max(10, (py + 16) - cy);
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
     bullets.push(mk(cx, cy, (dx / dist) * speed * 1.4, (dy / dist) * speed * 1.4, '#ff0000'));
   }
@@ -176,11 +176,7 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossData, time: nu
 
   ctx.save();
 
-  // Warning glow
-  ctx.shadowColor = boss.glowColor;
-  ctx.shadowBlur = 20 + 10 * Math.sin(time * 3);
-
-  // Body
+  // Body (no shadowBlur for mobile performance)
   ctx.fillStyle = '#0a0a1a';
   ctx.strokeStyle = boss.color;
   ctx.lineWidth = 2;
@@ -196,13 +192,7 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossData, time: nu
   ctx.fill();
   ctx.stroke();
 
-  // Hit flash overlay
-  if (boss.hitFlash > 0) {
-    ctx.globalAlpha = Math.min(boss.hitFlash * 10, 1.0);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
+
 
   // Inner details
   ctx.strokeStyle = boss.glowColor;
@@ -229,7 +219,6 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossData, time: nu
   ctx.fill();
 
   // HP Bar
-  ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
   const barWidth = boss.width + 20;
   const barX = boss.x - 10;

@@ -128,7 +128,7 @@ const stage6: StageDefinition = {
   ],
   boss: {
     name: 'HELIOS PRIME',
-    hp: 1500,
+    hp: 1125,
     width: 100,
     height: 68,
     score: 35000,

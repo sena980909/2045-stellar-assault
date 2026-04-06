@@ -16,16 +16,17 @@ const stage3: StageDefinition = {
     { time: 27, enemies: [{ type: 'kamikaze', count: 6, delay: 0.15 }, { type: 'fighter', count: 4, delay: 0.3 }] },
     { time: 31, enemies: [{ type: 'heavy', count: 3, delay: 0.35 }, { type: 'scout', count: 8, delay: 0.08 }] },
     { time: 35, enemies: [{ type: 'fighter', count: 6, delay: 0.2 }, { type: 'kamikaze', count: 4, delay: 0.2 }] },
-    // === Phase 4: Hell wave - all types (40~48s) ===
-    { time: 40, enemies: [{ type: 'heavy', count: 3, delay: 0.3 }, { type: 'fighter', count: 6, delay: 0.2 }, { type: 'kamikaze', count: 5, delay: 0.15 }, { type: 'scout', count: 6, delay: 0.1 }] },
-    // === Phase 5: Pre-boss kamikaze rush (47~53s) ===
-    { time: 47, enemies: [{ type: 'kamikaze', count: 5, delay: 0.12 }, { type: 'scout', count: 5, delay: 0.1 }] },
-    { time: 50, enemies: [{ type: 'kamikaze', count: 5, delay: 0.12 }, { type: 'scout', count: 3, delay: 0.1 }] },
+    // === Phase 4: Hell wave - all types (40~48s) — split into 2 sub-waves ===
+    { time: 40, enemies: [{ type: 'heavy', count: 2, delay: 0.4 }, { type: 'fighter', count: 4, delay: 0.25 }, { type: 'kamikaze', count: 3, delay: 0.2 }] },
+    { time: 44, enemies: [{ type: 'fighter', count: 3, delay: 0.3 }, { type: 'kamikaze', count: 3, delay: 0.25 }, { type: 'scout', count: 5, delay: 0.12 }] },
+    // === Phase 5: Pre-boss kamikaze rush (48~53s) ===
+    { time: 48, enemies: [{ type: 'kamikaze', count: 4, delay: 0.18 }, { type: 'scout', count: 4, delay: 0.12 }] },
+    { time: 51, enemies: [{ type: 'kamikaze', count: 3, delay: 0.2 }, { type: 'scout', count: 3, delay: 0.12 }] },
     { time: 56, enemies: [] }, // boss trigger
   ],
   boss: {
     name: 'NEXUS PRIME',
-    hp: 1000,
+    hp: 750,
     width: 96,
     height: 64,
     score: 20000,
@@ -36,12 +37,13 @@ const stage3: StageDefinition = {
       { hpThreshold: 1.0, pattern: 'radial', shootInterval: 0.6, speed: 90 },
       { hpThreshold: 0.7, pattern: 'spiral', shootInterval: 0.2, speed: 120 },
       { hpThreshold: 0.4, pattern: 'aimed', shootInterval: 0.3, speed: 160 },
-      { hpThreshold: 0.15, pattern: 'fury', shootInterval: 0.12, speed: 180 },
+      { hpThreshold: 0.15, pattern: 'fury', shootInterval: 0.2, speed: 160 },
     ],
   },
   bgColor1: '#110000',
   bgColor2: '#110011',
   starSpeed: 1.6,
+  itemDrop: { dropChance: 0.14, weights: { power: 4, bomb: 2, speed: 2, hp: 2 } },
 };
 
 export default stage3;

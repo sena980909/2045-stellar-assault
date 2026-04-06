@@ -39,7 +39,7 @@ registerBossPattern('barrage', (boss, px, py, mk) => {
     const targetX = px + 16 + (Math.random() * 60 - 30);
     const targetY = py + 16 + (Math.random() * 60 - 30);
     const dx = targetX - cx;
-    const dy = targetY - cy;
+    const dy = Math.max(10, targetY - cy);
     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
     bullets.push(mk(cx, cy, (dx / dist) * speed, (dy / dist) * speed, '#00ffee'));
   }
@@ -74,7 +74,7 @@ const stage8: StageDefinition = {
   ],
   boss: {
     name: 'WARP KING',
-    hp: 1800,
+    hp: 1350,
     width: 96,
     height: 68,
     score: 70000,

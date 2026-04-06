@@ -13,17 +13,16 @@ import { drawExplosion, drawParticle } from '../effects/Explosion';
 export function render(game: Game) {
   const ctx = game.ctx;
 
+  // Clear canvas completely to prevent ghosting/flicker
+  ctx.clearRect(0, 0, game.width, game.height);
+
   // === Shaken layer: game world only ===
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, game.width, game.height);
   ctx.clip();
 
-  if (game.screenShake > 0) {
-    const shakeX = (Math.random() - 0.5) * game.screenShake * 10;
-    const shakeY = (Math.random() - 0.5) * game.screenShake * 10;
-    ctx.translate(shakeX, shakeY);
-  }
+  // Screen shake removed — was causing visual jitter
 
   // Background
   game.bg.draw(ctx, game.time);
@@ -42,18 +41,48 @@ export function render(game: Game) {
       break;
   }
 
-  // Bomb flash
-  if (game.bombActive) {
-    const bombAlpha = Math.pow(game.bombTimer / 0.8, 2) * 0.3;
-    ctx.fillStyle = `rgba(255, 255, 255, ${bombAlpha})`;
-    ctx.fillRect(-10, -10, game.width + 20, game.height + 20);
+  // Hit flash: brief red overlay when player takes damage
+  if (game.screenFlash > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.4, game.screenFlash);
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(0, 0, game.width, game.height);
+    ctx.restore();
   }
 
-  // Player hit red flash
-  if (game.screenFlash > 0) {
-    const flashAlpha = Math.min(game.screenFlash, 0.4);
-    ctx.fillStyle = `rgba(255, 0, 0, ${flashAlpha})`;
-    ctx.fillRect(-10, -10, game.width + 20, game.height + 20);
+  // Bomb shockwave effect
+  if (game.bombActive) {
+    const progress = 1 - game.bombTimer / 0.8; // 0 → 1
+    const px = game.player.x + game.player.width / 2;
+    const py = game.player.y + game.player.height / 2;
+    const maxR = Math.max(game.width, game.height);
+    const radius = progress * maxR;
+
+    // Expanding shockwave ring
+    ctx.save();
+    const ringAlpha = Math.max(0, 1 - progress) * 0.7;
+    ctx.globalAlpha = ringAlpha;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 6 * (1 - progress) + 1;
+    ctx.beginPath();
+    ctx.arc(px, py, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Second inner ring (cyan)
+    ctx.globalAlpha = ringAlpha * 0.6;
+    ctx.strokeStyle = '#00ccff';
+    ctx.lineWidth = 3 * (1 - progress) + 1;
+    ctx.beginPath();
+    ctx.arc(px, py, radius * 0.7, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Screen-wide flash (quick, fades fast)
+    if (progress < 0.15) {
+      ctx.globalAlpha = (0.15 - progress) * 2;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-10, -10, game.width + 20, game.height + 20);
+    }
+    ctx.restore();
   }
 
   ctx.restore();
@@ -90,14 +119,19 @@ export function render(game: Game) {
     // Mobile pause button
     if (game.input.isMobile) {
       const pb = game.input.pauseBtn;
-      ctx.globalAlpha = 0.35;
-      ctx.fillStyle = '#336';
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = '#334466';
       ctx.beginPath();
       ctx.arc(pb.x, pb.y, pb.r, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = '#6688aa';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(pb.x, pb.y, pb.r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.9;
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 12px monospace';
+      ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('II', pb.x, pb.y);
@@ -180,9 +214,26 @@ function renderMenu(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.fillText(`HIGH SCORE: ${game.highScore.toLocaleString()}`, cx, cy + 165);
   }
 
+  // Volume control
   ctx.fillStyle = '#334455';
   ctx.font = '11px monospace';
-  ctx.fillText(game.sound.muted ? '[M] SOUND OFF' : '[M] SOUND ON', cx, game.height - 30);
+  ctx.fillText(game.sound.muted ? '[M] SOUND OFF' : '[M] SOUND ON', cx, game.height - 45);
+
+  // Volume bar
+  const volPct = Math.round(game.sound.volume * 100);
+  ctx.fillStyle = '#334455';
+  ctx.fillText(`[-/+] VOL: ${volPct}%`, cx, game.height - 28);
+  const barW = 100;
+  const barH = 6;
+  const barX = cx - barW / 2;
+  const barY = game.height - 20;
+  ctx.fillStyle = '#222';
+  ctx.fillRect(barX, barY, barW, barH);
+  ctx.fillStyle = game.sound.muted ? '#555' : '#00aaff';
+  ctx.fillRect(barX, barY, barW * game.sound.volume, barH);
+  ctx.strokeStyle = '#446';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(barX, barY, barW, barH);
 
   ctx.restore();
 }
@@ -219,10 +270,8 @@ function renderGameWorld(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.translate(ft.x, ft.y);
     ctx.scale(scale, scale);
     ctx.fillStyle = ft.color;
-    ctx.font = 'bold 14px monospace';
+    ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
-    ctx.shadowColor = ft.color;
-    ctx.shadowBlur = 6;
     ctx.fillText(ft.text, 0, 0);
     ctx.restore();
   }
@@ -235,24 +284,21 @@ function renderGameWorld(game: Game, ctx: CanvasRenderingContext2D) {
     // Red vignette
     ctx.globalAlpha = Math.min(t * 0.4, 0.3) * flash;
     ctx.fillStyle = '#ff0000';
-    ctx.fillRect(0, 0, 400, 700);
+    ctx.fillRect(0, 0, game.width, game.height);
     // WARNING text
     ctx.globalAlpha = Math.min(t, 1.0);
-    ctx.shadowColor = '#ff0000';
-    ctx.shadowBlur = 20 + flash * 15;
     ctx.fillStyle = '#ff2222';
     ctx.font = 'bold 48px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const shake = t > 1.5 ? (Math.random() - 0.5) * 4 : 0;
-    ctx.fillText('⚠ WARNING ⚠', 200 + shake, 300 + shake);
+    ctx.fillText('⚠ WARNING ⚠', game.width / 2 + shake, game.height * 0.43 + shake);
     // Boss name subtitle
     if (game.boss && t < 2.0) {
       ctx.globalAlpha = Math.min((2.0 - t) * 2, 1.0) * 0.9;
       ctx.font = 'bold 18px monospace';
-      ctx.shadowBlur = 10;
       ctx.fillStyle = '#ffaa00';
-      ctx.fillText(game.boss.name, 200, 345);
+      ctx.fillText(game.boss.name, game.width / 2, game.height * 0.43 + 45);
     }
     ctx.restore();
   }
@@ -298,58 +344,63 @@ function renderHUD(game: Game, ctx: CanvasRenderingContext2D) {
   // HP bar
   const hpRatio = game.player.hp / game.player.maxHp;
   const isLowHp = hpRatio <= 0.3;
-  ctx.fillStyle = '#888';
-  ctx.font = '10px monospace';
+  ctx.fillStyle = '#aaa';
+  ctx.font = 'bold 12px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText('HP', 10, 38);
+  ctx.fillText('HP', 10, 40);
   // Bar background
   ctx.fillStyle = '#333';
-  ctx.fillRect(28, 30, 80, 10);
+  ctx.fillRect(32, 30, 90, 14);
   // Bar fill
   const hpColor = hpRatio > 0.5 ? '#00ff88' : hpRatio > 0.3 ? '#ffaa00' : '#ff4444';
   ctx.fillStyle = hpColor;
-  ctx.fillRect(28, 30, 80 * hpRatio, 10);
+  ctx.fillRect(32, 30, 90 * hpRatio, 14);
   // Bar border
   ctx.strokeStyle = '#666';
   ctx.lineWidth = 1;
-  ctx.strokeRect(28, 30, 80, 10);
+  ctx.strokeRect(32, 30, 90, 14);
   // HP text
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 9px monospace';
+  ctx.font = 'bold 11px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(`${game.player.hp}/${game.player.maxHp}`, 68, 39);
+  ctx.fillText(`${game.player.hp}/${game.player.maxHp}`, 77, 42);
   // Low HP warning
   if (isLowHp && Math.floor(game.time * 4) % 2 === 0) {
     ctx.fillStyle = '#ff4444';
-    ctx.font = 'bold 10px monospace';
+    ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('DANGER!', 115, 39);
+    ctx.fillText('DANGER!', 128, 42);
   }
 
   // Bombs
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ff4444';
-  ctx.font = '14px monospace';
+  ctx.font = '16px monospace';
   for (let i = 0; i < game.player.bombs; i++) {
-    ctx.fillText('*', 10 + i * 16, 56);
+    ctx.fillText('*', 10 + i * 18, 60);
   }
 
   // Power level
   ctx.fillStyle = '#00ccff';
-  ctx.font = '10px monospace';
-  ctx.fillText(`PWR ${game.player.power}/5`, 10, 70);
+  ctx.font = 'bold 12px monospace';
+  ctx.fillText(`PWR ${game.player.power}/5`, 10, 74);
 
   // Sound mute indicator / button
   if (game.input.isMobile) {
     const mb = game.input.muteBtn;
-    ctx.globalAlpha = 0.4;
-    ctx.fillStyle = game.sound.muted ? '#ff4444' : '#336';
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = game.sound.muted ? '#ff4444' : '#334466';
     ctx.beginPath();
     ctx.arc(mb.x, mb.y, mb.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = 0.7;
+    ctx.strokeStyle = game.sound.muted ? '#ff6666' : '#6688aa';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(mb.x, mb.y, mb.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 0.9;
     ctx.fillStyle = '#fff';
-    ctx.font = '10px monospace';
+    ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(game.sound.muted ? 'X' : 'S', mb.x, mb.y);
@@ -369,8 +420,6 @@ function renderHUD(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.textAlign = 'right';
     ctx.font = 'bold 18px monospace';
     ctx.fillStyle = game.comboCount >= 20 ? '#ff4444' : game.comboCount >= 10 ? '#ffaa00' : '#ffff00';
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = 8;
     ctx.fillText(`${game.comboCount} COMBO`, game.width - 10, 56);
     const mult = game.getComboMultiplier();
     if (mult > 1) {
@@ -384,17 +433,14 @@ function renderHUD(game: Game, ctx: CanvasRenderingContext2D) {
   if (game.boss && game.boss.active) {
     const bossBarW = game.width - 80;
     const bossBarX = 40;
-    const bossBarY = 82;
+    const bossBarY = 96;
     const bossBarH = 8;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.fillStyle = game.boss.color;
-    ctx.font = 'bold 11px monospace';
-    ctx.shadowColor = game.boss.color;
-    ctx.shadowBlur = 6;
+    ctx.font = 'bold 12px monospace';
     ctx.fillText(game.boss.name, game.width / 2, bossBarY - 4);
-    ctx.shadowBlur = 0;
 
     ctx.fillStyle = '#222';
     ctx.fillRect(bossBarX, bossBarY, bossBarW, bossBarH);
@@ -480,6 +526,7 @@ function renderEnterName(game: Game, ctx: CanvasRenderingContext2D) {
 }
 
 function renderPause(game: Game, ctx: CanvasRenderingContext2D) {
+  ctx.save();
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.fillRect(0, 0, game.width, game.height);
 
@@ -495,9 +542,29 @@ function renderPause(game: Game, ctx: CanvasRenderingContext2D) {
   } else {
     ctx.fillText('Press P or ESC to resume', game.width / 2, game.height / 2 + 20);
   }
+
+  // Volume control in pause menu
+  const cx = game.width / 2;
+  const volPct = Math.round(game.sound.volume * 100);
+  ctx.fillStyle = '#667';
+  ctx.font = '12px monospace';
+  ctx.fillText(`[M] ${game.sound.muted ? 'UNMUTE' : 'MUTE'}   [-/+] VOL: ${volPct}%`, cx, game.height / 2 + 60);
+  const barW = 120;
+  const barH = 8;
+  const barX = cx - barW / 2;
+  const barY = game.height / 2 + 70;
+  ctx.fillStyle = '#222';
+  ctx.fillRect(barX, barY, barW, barH);
+  ctx.fillStyle = game.sound.muted ? '#555' : '#00aaff';
+  ctx.fillRect(barX, barY, barW * game.sound.volume, barH);
+  ctx.strokeStyle = '#446';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(barX, barY, barW, barH);
+  ctx.restore();
 }
 
 function renderStageClear(game: Game, ctx: CanvasRenderingContext2D) {
+  ctx.save();
   ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
   ctx.fillRect(0, 0, game.width, game.height);
 
@@ -525,16 +592,20 @@ function renderStageClear(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.fillText(`CLEAR BONUS +${clearBonus.toLocaleString()}`, game.width / 2, game.height / 2 + 32);
     ctx.fillStyle = '#00ccff';
     ctx.fillText('+1 BOMB', game.width / 2, game.height / 2 + 48);
+    ctx.fillStyle = '#ff66aa';
+    ctx.fillText('+4 HP', game.width / 2, game.height / 2 + 64);
   }
 
   if (game.stageTransitionTimer > 1.5) {
     ctx.fillStyle = '#888';
     ctx.font = '14px monospace';
-    ctx.fillText('NEXT STAGE...', game.width / 2, game.height / 2 + 60);
+    ctx.fillText('NEXT STAGE...', game.width / 2, game.height / 2 + 86);
   }
+  ctx.restore();
 }
 
 function renderGameOver(game: Game, ctx: CanvasRenderingContext2D) {
+  ctx.save();
   ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
   ctx.fillRect(0, 0, game.width, game.height);
 
@@ -560,16 +631,16 @@ function renderGameOver(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = '#888';
     ctx.font = '14px monospace';
     if (game.input.isMobile) {
-      ctx.fillText('TAP TO RETRY', game.width / 2, game.height / 2 + 60);
-      ctx.fillText('DOUBLE TAP FOR MENU', game.width / 2, game.height / 2 + 80);
+      ctx.fillText('TAP TO CONTINUE', game.width / 2, game.height / 2 + 60);
     } else {
-      ctx.fillText('PRESS SPACE TO RETRY', game.width / 2, game.height / 2 + 60);
-      ctx.fillText('PRESS ESC FOR MENU', game.width / 2, game.height / 2 + 80);
+      ctx.fillText('PRESS SPACE TO CONTINUE', game.width / 2, game.height / 2 + 60);
     }
   }
+  ctx.restore();
 }
 
 function renderVictory(game: Game, ctx: CanvasRenderingContext2D) {
+  ctx.save();
   ctx.fillStyle = 'rgba(0, 0, 20, 0.85)';
   ctx.fillRect(0, 0, game.width, game.height);
 
@@ -604,6 +675,7 @@ function renderVictory(game: Game, ctx: CanvasRenderingContext2D) {
   if (Math.floor(game.time * 2) % 2 === 0) {
     ctx.fillStyle = '#888';
     ctx.font = '14px monospace';
-    ctx.fillText('PRESS SPACE', cx, game.height / 2 + 100);
+    ctx.fillText(game.input.isMobile ? 'TAP TO CONTINUE' : 'PRESS SPACE', cx, game.height / 2 + 100);
   }
+  ctx.restore();
 }

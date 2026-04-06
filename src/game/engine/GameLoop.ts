@@ -20,7 +20,7 @@ import { createEnemy, updateEnemy, enemyShoot, registerEnemyTypes } from '../ent
 import { createBoss, updateBoss, bossShoot } from '../entities/Boss';
 import { updateBullet } from '../entities/Bullet';
 import { createItem, randomItemType, updateItem } from '../entities/Item';
-import { createExplosion, updateExplosion, createParticles, updateParticle } from '../effects/Explosion';
+import { updateExplosion, updateParticle, createBurstExplosion, createMegaExplosion, createParticles, createFlashSparks } from '../effects/Explosion';
 import { Background } from '../effects/Background';
 import { SoundManager } from '../effects/SoundManager';
 import { StageManager } from '../stages/StageManager';
@@ -78,6 +78,7 @@ export class Game {
   fpsTimer = 0;
 
   highScore = 0;
+  private destroyed = false;
 
   width: number;
   height: number;
@@ -112,7 +113,8 @@ export class Game {
   }
 
   private loop = (now: number) => {
-    const rawDt = (now - this.lastTime) / 1000;
+    if (this.destroyed) return;
+    const rawDt = Math.max(0, (now - this.lastTime) / 1000);
     let dt = Math.min(rawDt, 1 / 30);
     this.lastTime = now;
     if (this.slowMo > 0) {
@@ -137,9 +139,9 @@ export class Game {
       case 'playing': this.updatePlaying(dt); break;
       case 'paused': this.updatePaused(); break;
       case 'stageClear': this.updateStageClear(dt); break;
-      case 'gameOver': this.updateGameOver(); break;
+      case 'gameOver': this.updateGameOver(dt); break;
       case 'victory': this.updateVictory(); break;
-      case 'enterName': this.updateEnterName(); break;
+      case 'enterName': this.updateEnterName(dt); break;
     }
 
     render(this);
@@ -147,29 +149,37 @@ export class Game {
   };
 
   private handleDebugKeys() {
-    if (this.input.wasPressed('F1')) this.debug.showHitboxes = !this.debug.showHitboxes;
-    if (this.input.wasPressed('F5')) this.debug.invincible = !this.debug.invincible;
-    if (this.input.wasPressed('F6')) this.debug.showObjectCount = !this.debug.showObjectCount;
     if (this.input.wasPressed('KeyM')) this.sound.toggleMute();
-    // Stage skip only from menu or playing states (not enterName/gameOver/victory)
-    if (this.state !== 'menu' && this.state !== 'playing') return;
-    // Dynamic stage skip: Digit1-9 + Digit0 for stage 10
-    for (let i = 1; i <= 9; i++) {
-      if (this.input.wasPressed(`Digit${i}`) && i <= this.stageManager.totalStages) {
-        this.stageManager.skipToStage(i - 1);
+    if (this.input.wasPressed('Minus') || this.input.wasPressed('NumpadSubtract')) this.sound.volumeDown();
+    if (this.input.wasPressed('Equal') || this.input.wasPressed('NumpadAdd')) this.sound.volumeUp();
+
+    // Debug keys ONLY in development mode — never in production (Vercel)
+    if (process.env.NODE_ENV !== 'production') {
+      if (this.input.wasPressed('F1')) this.debug.showHitboxes = !this.debug.showHitboxes;
+      if (this.input.wasPressed('F3')) this.debug.invincible = !this.debug.invincible;
+      if (this.input.wasPressed('F4')) this.debug.showObjectCount = !this.debug.showObjectCount;
+      // Stage skip only from menu or playing states (not enterName/gameOver/victory)
+      if (this.state !== 'menu' && this.state !== 'playing') return;
+      // Dynamic stage skip: Digit1-9 + Digit0 for stage 10
+      for (let i = 1; i <= 9; i++) {
+        if (this.input.wasPressed(`Digit${i}`) && i <= this.stageManager.totalStages) {
+          this.stageManager.skipToStage(i - 1);
+          this.startGame();
+          return;
+        }
+      }
+      if (this.input.wasPressed('Digit0') && this.stageManager.totalStages >= 10) {
+        this.stageManager.skipToStage(9);
         this.startGame();
         return;
       }
-    }
-    if (this.input.wasPressed('Digit0') && this.stageManager.totalStages >= 10) {
-      this.stageManager.skipToStage(9);
-      this.startGame();
-      return;
     }
   }
 
   private startGame() {
     this.state = 'playing';
+    // Always reset debug invincible on game start
+    this.debug.invincible = false;
     this.player = createPlayer(this.width, this.height);
     this.bullets = [];
     this.enemies = [];
@@ -181,10 +191,17 @@ export class Game {
     this.bombActive = false;
     this.bombTimer = 0;
     this.screenShake = 0;
+    this.screenFlash = 0;
+    this.slowMo = 0;
+    this.bossWarningTimer = 0;
+    this.stageTransitionTimer = 0;
+    this.stageTransitionPhase = 'none';
     this.comboCount = 0;
     this.comboTimer = 0;
     this.maxCombo = 0;
     this.comboDisplayTimer = 0;
+    this.gameOverTapCount = 0;
+    this.gameOverTapTimer = 0;
     this.stageManager.reset();
     // Register stage-specific enemy types
     const stageEnemies = this.stageManager.currentStage.enemyTypes;
@@ -237,13 +254,17 @@ export class Game {
 
     // Bomb
     const bombPressed = this.input.isBombing;
-    if (bombPressed) this.input.touchBomb = false;
     if (bombPressed && this.player.bombs > 0 && !this.bombActive) {
       this.player.bombs--;
       this.bombActive = true;
       this.bombTimer = 0.8;
       this.screenShake = 0.5;
       this.sound.playBomb();
+      // Bomb shockwave particles from player center
+      const bx = this.player.x + this.player.width / 2;
+      const by = this.player.y + this.player.height / 2;
+      this.particles.push(...createFlashSparks(bx, by, 20));
+      this.particles.push(...createParticles(bx, by, 12, '#00ccff'));
       for (const b of this.bullets) {
         if (!b.isPlayer) b.active = false;
       }
@@ -258,10 +279,25 @@ export class Game {
           this.spawnExplosion(e.x + e.width / 2, e.y + e.height / 2, e.type.color);
         }
       }
-      if (this.boss) {
+      if (this.boss && !this.boss.entering) {
+        const prevHpRatio = this.boss.hp / this.boss.maxHp;
         const bombDmg = Math.max(10, Math.floor(this.boss.maxHp * 0.03));
         this.boss.hp -= bombDmg;
         this.boss.hitFlash = 0.1;
+        // Check item drop thresholds for bomb damage too
+        if (this.boss.hp > 0) {
+          const newHpRatio = this.boss.hp / this.boss.maxHp;
+          const prevSlice = Math.floor(prevHpRatio * 7);
+          const newSlice = Math.floor(newHpRatio * 7);
+          for (let s = 0; s < prevSlice - newSlice; s++) {
+            const itemType = this.player.power <= 1 ? 'power' as const : this.getItemType();
+            this.items.push(createItem(
+              this.boss.x + this.boss.width / 2 + (Math.random() - 0.5) * 40,
+              this.boss.y + this.boss.height,
+              itemType
+            ));
+          }
+        }
       }
     }
     if (this.bombActive) {
@@ -365,9 +401,11 @@ export class Game {
     this.items = this.items.filter(i => i.active);
     this.explosions = this.explosions.filter(e => e.active);
     this.particles = this.particles.filter(p => p.active);
+    // Cap particles for mobile performance
+    if (this.particles.length > 120) this.particles = this.particles.slice(-120);
 
-    // Check boss death
-    if (this.boss && this.boss.hp <= 0 && this.boss.active) {
+    // Check boss death (skip if player already dead)
+    if (this.boss && this.boss.hp <= 0 && this.boss.active && this.state === 'playing') {
       this.boss.active = false;
       const bossMult = this.getComboMultiplier();
       this.player.score += Math.floor(this.boss.score * bossMult);
@@ -409,7 +447,7 @@ export class Game {
         if (checkCollision(bullet, enemy)) {
           bullet.active = false;
           enemy.hp -= bullet.damage;
-          enemy.hitFlash = 0.08;
+          enemy.hitFlash = 0.04;
           if (enemy.hp <= 0) {
             enemy.active = false;
             this.comboCount++;
@@ -431,7 +469,7 @@ export class Game {
             this.spawnExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.type.color);
             this.sound.playExplosion();
             const dropCfg = this.stageManager.currentStage.itemDrop;
-            const dropChance = dropCfg?.dropChance ?? 0.12;
+            const dropChance = dropCfg?.dropChance ?? 0.15;
             if (Math.random() < dropChance) {
               this.items.push(createItem(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, this.getItemType()));
             }
@@ -445,14 +483,14 @@ export class Game {
         bullet.active = false;
         const prevHpRatio = this.boss.hp / this.boss.maxHp;
         this.boss.hp -= bullet.damage;
-        this.boss.hitFlash = 0.08;
+        this.boss.hitFlash = 0.04;
         this.particles.push(...createParticles(bullet.x, bullet.y, 4, '#ffffff'));
-        // Drop item at every ~14% HP threshold (7 slices = 6 drops per boss)
+        // Drop item at every ~12% HP threshold (8 slices = 7 drops per boss)
         // Guarantee power items when player is underpowered (breaks death spiral)
         if (this.boss.hp > 0) {
           const newHpRatio = this.boss.hp / this.boss.maxHp;
-          if (Math.floor(prevHpRatio * 7) > Math.floor(newHpRatio * 7)) {
-            const itemType = this.player.power <= 1 ? 'power' as const : this.getItemType();
+          if (Math.floor(prevHpRatio * 8) > Math.floor(newHpRatio * 8)) {
+            const itemType = this.player.power <= 2 ? 'power' as const : this.getItemType();
             this.items.push(createItem(
               this.boss.x + this.boss.width / 2 + (Math.random() - 0.5) * 40,
               this.boss.y + this.boss.height,
@@ -485,13 +523,21 @@ export class Game {
           this.spawnExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.type.color);
           // Drop item on collision kill
           const dropCfg = this.stageManager.currentStage.itemDrop;
-          const dropChance = dropCfg?.dropChance ?? 0.12;
+          const dropChance = dropCfg?.dropChance ?? 0.15;
           if (Math.random() < dropChance) {
             this.items.push(createItem(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, this.getItemType()));
           }
           this.onPlayerHit();
           return;
         }
+      }
+    }
+
+    // Boss body vs player
+    if (!this.player.invincible && !this.bombActive && this.state === 'playing' && this.boss && this.boss.active && !this.boss.entering) {
+      if (checkCollisionWithHitbox(this.boss, playerHitbox)) {
+        this.onPlayerHit();
+        return;
       }
     }
 
@@ -536,7 +582,7 @@ export class Game {
               this.player.score += 500;
               this.spawnFloatingText(ix, iy, '+500', '#ff66aa');
             } else {
-              this.player.hp = Math.min(this.player.hp + 2, this.player.maxHp);
+              this.player.hp = Math.min(this.player.hp + 1, this.player.maxHp);
               this.spawnFloatingText(ix, iy, '+HP!', '#ff66aa');
             }
             break;
@@ -550,17 +596,15 @@ export class Game {
   }
 
   private spawnExplosion(x: number, y: number, color: string) {
-    this.explosions.push(createExplosion(x, y, 25, color));
-    this.particles.push(...createParticles(x, y, 8, color));
+    const { explosions, particles } = createBurstExplosion(x, y, 25, color);
+    this.explosions.push(...explosions);
+    this.particles.push(...particles);
   }
 
   private spawnBigExplosion(x: number, y: number) {
-    for (let i = 0; i < 5; i++) {
-      const ox = (Math.random() - 0.5) * 40;
-      const oy = (Math.random() - 0.5) * 40;
-      this.explosions.push(createExplosion(x + ox, y + oy, 40, '#ff8844'));
-    }
-    this.particles.push(...createParticles(x, y, 30, '#ffaa44'));
+    const { explosions, particles } = createMegaExplosion(x, y);
+    this.explosions.push(...explosions);
+    this.particles.push(...particles);
   }
 
   // ===== PLAYER HIT =====
@@ -574,20 +618,27 @@ export class Game {
     this.particles.push(...createParticles(px, py, 8, '#ff4444'));
 
     this.player.hp--;
-    this.spawnFloatingText(px, py - 20, `-1 HP`, '#ff4444');
+    // Hard power penalty: reset to 1 on hit
+    if (this.player.power > 1) {
+      this.player.power = 1;
+      this.spawnFloatingText(px, py - 20, `-1 HP  PWR LOST!`, '#ff4444');
+    } else {
+      this.spawnFloatingText(px, py - 20, `-1 HP`, '#ff4444');
+    }
 
     if (this.player.hp <= 0) {
       this.player.hp = 0;
       this.spawnBigExplosion(px, py);
       this.sound.playExplosion();
       this.state = 'gameOver';
+      this.gameOverTapTimer = 0;
       this.saveHighScore();
       this.sound.stopBgm();
       this.sound.playGameOver();
     } else {
       // Brief invincibility after hit
       this.player.invincible = true;
-      this.player.invincibleTimer = 1.5;
+      this.player.invincibleTimer = 2.0;
     }
   }
 
@@ -607,10 +658,11 @@ export class Game {
     this.stageTransitionTimer += dt;
 
     if (this.stageTransitionTimer > 3) {
-      // Stage clear bonus: 5000 × stageNumber
+      // Stage clear bonus: 5000 × stageNumber + HP restore + bomb
       const clearBonus = 5000 * (this.stageManager.currentStageIndex + 1);
       this.player.score += clearBonus;
       this.player.bombs = Math.min(this.player.bombs + 1, 4);
+      this.player.hp = Math.min(this.player.hp + 4, this.player.maxHp);
       this.stageManager.nextStage();
       // Register new stage's custom enemy types
       const stageEnemies = this.stageManager.currentStage.enemyTypes;
@@ -624,6 +676,15 @@ export class Game {
       this.particles = [];
       this.floatingTexts = [];
       this.stageTransitionPhase = 'none';
+      this.bombActive = false;
+      this.bombTimer = 0;
+      this.slowMo = 0;
+      this.screenShake = 0;
+      this.screenFlash = 0;
+      this.comboCount = 0;
+      this.comboTimer = 0;
+      this.comboDisplayTimer = 0;
+      this.bossWarningTimer = 0;
       this.sound.startBgm('stage');
     }
   }
@@ -632,33 +693,19 @@ export class Game {
   gameOverTapCount = 0;
   gameOverTapTimer = 0;
 
-  private updateGameOver() {
-    this.gameOverTapTimer += 1 / 60;
+  private updateGameOver(dt: number) {
+    this.gameOverTapTimer += dt;
 
-    if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
+    // Wait a brief moment before accepting input (prevent accidental skip)
+    if (this.gameOverTapTimer < 0.5) return;
+
+    if (this.input.wasPressed('Space') || this.input.wasPressed('Enter') || this.input.wasPressed('Escape')) {
       if (this.isScoreTopTen()) {
         this.enterNameEntry('gameOver');
         return;
       }
-      this.gameOverTapCount++;
-      if (this.gameOverTapCount === 1) {
-        this.gameOverTapTimer = 0;
-      }
-      if (this.gameOverTapCount >= 2 && this.gameOverTapTimer < 0.5) {
-        this.clearAllObjects();
-        this.state = 'menu';
-        this.gameOverTapCount = 0;
-        return;
-      }
-    }
-    if (this.gameOverTapCount === 1 && this.gameOverTapTimer > 0.5) {
-      this.gameOverTapCount = 0;
-      this.stageManager.restartFromBeginning();
-      this.startGame();
-      return;
-    }
-    if (this.input.wasPressed('Escape')) {
       this.clearAllObjects();
+      this.stageManager.restartFromBeginning();
       this.state = 'menu';
     }
   }
@@ -685,8 +732,8 @@ export class Game {
 
   nameTapTimer = 0;
 
-  private updateEnterName() {
-    this.nameTapTimer += 1 / 60;
+  private updateEnterName(dt: number) {
+    this.nameTapTimer += dt;
 
     if (this.input.wasPressed('ArrowLeft') || this.input.wasPressed('KeyA')) {
       this.namePos = Math.max(0, this.namePos - 1);
@@ -750,13 +797,9 @@ export class Game {
   private confirmName() {
     const name = this.nameChars.map(c => String.fromCharCode(65 + c)).join('');
     this.addScoreEntry(name);
-    if (this.nameFrom === 'gameOver') {
-      this.stageManager.restartFromBeginning();
-      this.startGame();
-    } else {
-      this.clearAllObjects();
-      this.state = 'menu';
-    }
+    this.clearAllObjects();
+    this.stageManager.restartFromBeginning();
+    this.state = 'menu';
   }
 
   private isScoreTopTen(): boolean {
@@ -810,7 +853,19 @@ export class Game {
     this.particles = [];
     this.floatingTexts = [];
     this.bombActive = false;
+    this.bombTimer = 0;
     this.screenShake = 0;
+    this.screenFlash = 0;
+    this.slowMo = 0;
+    this.bossWarningTimer = 0;
+    this.stageTransitionTimer = 0;
+    this.stageTransitionPhase = 'none';
+    this.comboCount = 0;
+    this.comboTimer = 0;
+    this.maxCombo = 0;
+    this.comboDisplayTimer = 0;
+    this.gameOverTapCount = 0;
+    this.gameOverTapTimer = 0;
   }
 
   private saveHighScore() {
@@ -831,6 +886,7 @@ export class Game {
   }
 
   destroy() {
+    this.destroyed = true;
     cancelAnimationFrame(this.animFrame);
     this.input.destroy();
     document.removeEventListener('visibilitychange', this.onVisibilityChange);

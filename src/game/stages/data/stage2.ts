@@ -25,7 +25,7 @@ const stage2: StageDefinition = {
   ],
   boss: {
     name: 'OVERLORD X-7',
-    hp: 1000,
+    hp: 750,
     width: 80,
     height: 56,
     score: 10000,
@@ -41,6 +41,7 @@ const stage2: StageDefinition = {
   bgColor1: '#001100',
   bgColor2: '#001122',
   starSpeed: 1.3,
+  itemDrop: { dropChance: 0.13, weights: { power: 4, bomb: 3, speed: 2, hp: 2 } },
 };
 
 export default stage2;

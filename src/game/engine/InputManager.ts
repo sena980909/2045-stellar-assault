@@ -42,16 +42,23 @@ export class InputManager {
   readonly focusBtn = { x: 400 - 55, y: 700 - 145, r: 30 };
   readonly muteBtn = { x: 400 - 25, y: 30, r: 16 };
   // Pause: top-left area
-  readonly pauseBtn = { x: 30, y: 90, r: 16 };
+  readonly pauseBtn = { x: 30, y: 90, r: 22 };
   touchPause = false;
 
   init(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    // Detect mobile: use pointer query to exclude Win11 desktops with touch capability
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const hasFinePointer = window.matchMedia?.('(pointer:fine)')?.matches;
+    this.isMobile = hasTouch && !hasFinePointer;
 
     this.onKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault();
-      this.keys.add(e.code);
+      // Only prevent default for game keys (not F5 refresh, F12 devtools, Ctrl+R, etc.)
+      const code = e.code;
+      if (!code.startsWith('F') && code !== 'Tab' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+      }
+      this.keys.add(code);
     };
     this.onKeyUp = (e: KeyboardEvent) => {
       this.keys.delete(e.code);
@@ -67,6 +74,7 @@ export class InputManager {
 
     this.onTouchStart = (e: TouchEvent) => {
       e.preventDefault();
+      this.isMobile = true; // confirmed touch device on first real touch
       const rect = canvas.getBoundingClientRect();
       const scaleX = 400 / rect.width;
       const scaleY = 700 / rect.height;
@@ -159,14 +167,12 @@ export class InputManager {
         }
       }
 
-      // Recheck remaining touches for held buttons
-      this.touchBomb = false;
+      // Recheck remaining touches for held buttons (focus only — bomb is one-shot)
       this.touchFocus = false;
       for (let j = 0; j < e.touches.length; j++) {
         const remaining = e.touches[j];
         const rx = (remaining.clientX - rect.left) * scaleX;
         const ry = (remaining.clientY - rect.top) * scaleY;
-        if (this.hitCircle(rx, ry, this.bombBtn)) this.touchBomb = true;
         if (this.hitCircle(rx, ry, this.focusBtn)) this.touchFocus = true;
       }
     };
@@ -242,11 +248,18 @@ export class InputManager {
   }
 
   get isShooting(): boolean {
+    // Mobile: always auto-shoot during gameplay
+    if (this.isMobile) return true;
     return this.keys.has('Space') || this.keys.has('KeyZ');
   }
 
   get isBombing(): boolean {
-    return this.wasPressed('KeyX') || this.wasPressed('KeyB') || this.touchBomb;
+    if (this.wasPressed('KeyX') || this.wasPressed('KeyB')) return true;
+    if (this.touchBomb) {
+      this.touchBomb = false; // consume immediately — one bomb per tap
+      return true;
+    }
+    return false;
   }
 
   get isFocused(): boolean {

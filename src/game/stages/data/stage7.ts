@@ -48,7 +48,9 @@ registerBossPattern('gravity', (boss, px, py, mk) => {
     const spread = (i - (ringCount - 1) / 2) * 0.12; // ±0.3 rad (~17 degrees) spread
     const finalAngle = baseAngle + spread;
 
-    bullets.push(mk(spawnX, spawnY, Math.cos(finalAngle) * speed, Math.sin(finalAngle) * speed, '#bb66ff'));
+    const bvx = Math.cos(finalAngle) * speed;
+    const bvy = Math.max(30, Math.sin(finalAngle) * speed); // ensure downward
+    bullets.push(mk(spawnX, spawnY, bvx, bvy, '#bb66ff'));
   }
 
   return bullets;
@@ -149,7 +151,7 @@ const stage7: StageDefinition = {
   ],
   boss: {
     name: 'SINGULARITY',
-    hp: 1600,
+    hp: 1200,
     width: 104,
     height: 72,
     score: 40000,

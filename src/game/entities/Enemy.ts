@@ -151,7 +151,7 @@ export function updateEnemy(
 }
 
 export function enemyShoot(enemy: EnemyData, playerX: number, playerY: number): BulletData[] {
-  if (!enemy.type.canShoot || enemy.shootTimer > 0) return [];
+  if (!enemy.type.canShoot || enemy.shootTimer > 0 || enemy.y + enemy.height < 0) return [];
   enemy.shootTimer = enemy.type.shootInterval;
 
   const cx = enemy.x + enemy.width / 2;
@@ -220,11 +220,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: EnemyData, time:
 
   ctx.save();
 
-  // Glow
-  ctx.shadowColor = enemy.type.glowColor;
-  ctx.shadowBlur = 10;
-
-  // Body
+  // Body (no shadowBlur for mobile performance)
   ctx.fillStyle = '#1a1a1a';
   ctx.strokeStyle = enemy.type.color;
   ctx.lineWidth = 2;
@@ -235,13 +231,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: EnemyData, time:
     ctx.arc(cx, cy, hw, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    // Hit flash
-    if (enemy.hitFlash > 0) {
-      ctx.globalAlpha = Math.min(enemy.hitFlash * 10, 1.0);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
+    // Hit flash removed — was causing visible blinking
     // Pulsing core
     ctx.fillStyle = `rgba(255, 255, 0, ${0.5 + 0.5 * Math.sin(time * 15)})`;
     ctx.beginPath();
@@ -256,13 +246,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: EnemyData, time:
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    // Hit flash
-    if (enemy.hitFlash > 0) {
-      ctx.globalAlpha = Math.min(enemy.hitFlash * 10, 1.0);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
+    // Hit flash removed — was causing visible blinking
 
     // Core
     ctx.fillStyle = enemy.type.color;
@@ -275,7 +259,6 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: EnemyData, time:
   // HP bar for enemies with more than 1 HP
   if (enemy.maxHp > 1) {
     ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
     const barWidth = enemy.width;
     const barHeight = 3;
     const barY = enemy.y - 6;

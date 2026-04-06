@@ -8,8 +8,8 @@ export function createPlayer(canvasWidth: number, canvasHeight: number): PlayerS
     y: canvasHeight - 80,
     width: 32,
     height: 32,
-    hp: 10,
-    maxHp: 10,
+    hp: 5,
+    maxHp: 5,
     power: 1,
     bombs: 3,
     speed: 4.5,
@@ -57,22 +57,25 @@ export function updatePlayer(
 
 export function playerShoot(player: PlayerState): BulletData[] {
   if (player.shootTimer > 0 || !player.shooting) return [];
-  player.shootTimer = 0.12; // fire rate
+  player.shootTimer = 0.08; // fire rate
 
   const bullets: BulletData[] = [];
   const cx = player.x + player.width / 2;
   const bulletSpeed = -600;
 
   // Power 1-5: one bullet added per level, spread evenly
+  // Spread: P1=0, P2=8(tight pair), P3=25, P4=42, P5=60
   const count = Math.min(player.power, 5);
   if (count === 1) {
     // Single center bullet
     bullets.push(createBullet(cx - 3, player.y, 0, bulletSpeed));
   } else {
-    // Spread bullets symmetrically
-    const maxSpread = 60; // total angle spread in px velocity
+    // Spread bullets symmetrically — spread grows with power
+    // P2 gets tighter spread so both bullets overlap on center targets
+    const spreadTable = [0, 0, 8, 25, 42, 60];
+    const maxSpread = spreadTable[count];
     for (let i = 0; i < count; i++) {
-      const t = count === 1 ? 0 : (i / (count - 1)) * 2 - 1; // -1 to 1
+      const t = (i / (count - 1)) * 2 - 1; // -1 to 1
       const vx = t * maxSpread;
       const yOff = Math.abs(t) * 10; // outer bullets slightly behind
       const speedScale = 1 - Math.abs(t) * 0.08; // outer bullets slightly slower
@@ -111,8 +114,6 @@ export function getPlayerHitbox(player: PlayerState): { x: number; y: number; wi
 }
 
 export function drawPlayer(ctx: CanvasRenderingContext2D, player: PlayerState, time: number) {
-  if (player.invincible && Math.floor(time * 10) % 2 === 0) return;
-
   const cx = player.x + player.width / 2;
   const cy = player.y + player.height / 2;
 
@@ -160,6 +161,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, player: PlayerState, t
 
   // Focus mode hitbox indicator
   if (player.focused) {
+    ctx.globalAlpha = 1;
     const hitbox = getPlayerHitbox(player);
     ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + 0.3 * Math.sin(time * 10)})`;
     ctx.lineWidth = 1;

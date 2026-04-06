@@ -38,10 +38,8 @@ registerBossPattern('omega_burst', (boss: BossData, _px: number, _py: number, mk
     const angle = baseAngle + (Math.PI * 2 * i) / 12;
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
-    // Slow down bullets that travel upward so pattern is biased downward
-    if (vy < 0) {
-      vy *= 0.5;
-    }
+    // Ensure all bullets move downward
+    vy = Math.max(30, vy);
     bullets.push(mk(cx, cy, vx, vy, '#ff3333'));
   }
   return bullets;
@@ -200,7 +198,7 @@ const stage10: StageDefinition = {
   ],
   boss: {
     name: 'OMEGA PRIME',
-    hp: 2500,
+    hp: 1875,
     width: 110,
     height: 80,
     score: 100000,

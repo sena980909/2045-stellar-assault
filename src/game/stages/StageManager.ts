@@ -33,7 +33,9 @@ export class StageManager {
   }
 
   nextStage() {
-    this.currentStageIndex++;
+    if (this.currentStageIndex < this.stages.length - 1) {
+      this.currentStageIndex++;
+    }
     this.reset();
   }
 
