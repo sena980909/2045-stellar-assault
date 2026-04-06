@@ -40,6 +40,7 @@ export function render(game: Game) {
     case 'gameOver':
     case 'victory':
     case 'enterName':
+    case 'ending':
       renderGameWorld(game, ctx);
       break;
   }
@@ -113,6 +114,9 @@ export function render(game: Game) {
     case 'enterName':
       renderHUD(game, ctx);
       renderEnterName(game, ctx);
+      break;
+    case 'ending':
+      renderEnding(game, ctx);
       break;
   }
 
@@ -243,7 +247,8 @@ function renderMenu(game: Game, ctx: CanvasRenderingContext2D) {
 
 function renderDevSelect(game: Game, ctx: CanvasRenderingContext2D) {
   const cx = game.width / 2;
-  const total = game.stageManager.totalStages;
+  const stageCount = game.stageManager.totalStages;
+  const total = stageCount + 1; // +1 for ending preview
 
   ctx.save();
   ctx.textAlign = 'center';
@@ -261,7 +266,7 @@ function renderDevSelect(game: Game, ctx: CanvasRenderingContext2D) {
   ctx.font = 'bold 16px monospace';
   ctx.fillText('STAGE SELECT', cx, 78);
 
-  // Stage list
+  // Stage list + ending preview
   const startY = 110;
   const lineH = 28;
   for (let i = 0; i < total; i++) {
@@ -273,13 +278,18 @@ function renderDevSelect(game: Game, ctx: CanvasRenderingContext2D) {
       ctx.fillRect(30, y - 16, game.width - 60, lineH - 2);
     }
 
-    ctx.fillStyle = selected ? '#ff4444' : '#888888';
-    ctx.font = selected ? 'bold 14px monospace' : '13px monospace';
-
-    const stage = game.stageManager.getStageInfo(i);
-    const name = stage ? `${stage.name} - ${stage.subtitle}` : `STAGE ${i + 1}`;
     const prefix = selected ? '> ' : '  ';
-    ctx.fillText(`${prefix}${name}`, cx, y);
+    if (i < stageCount) {
+      ctx.fillStyle = selected ? '#ff4444' : '#888888';
+      ctx.font = selected ? 'bold 14px monospace' : '13px monospace';
+      const stage = game.stageManager.getStageInfo(i);
+      const name = stage ? `${stage.name} - ${stage.subtitle}` : `STAGE ${i + 1}`;
+      ctx.fillText(`${prefix}${name}`, cx, y);
+    } else {
+      ctx.fillStyle = selected ? '#ffcc00' : '#666644';
+      ctx.font = selected ? 'bold 14px monospace' : '13px monospace';
+      ctx.fillText(`${prefix}ENDING CREDITS`, cx, y);
+    }
   }
 
   // Controls hint
@@ -749,5 +759,79 @@ function renderVictory(game: Game, ctx: CanvasRenderingContext2D) {
     ctx.font = '14px monospace';
     ctx.fillText(game.input.isMobile ? 'TAP TO CONTINUE' : 'PRESS SPACE', cx, game.height / 2 + 100);
   }
+  ctx.restore();
+}
+
+function renderEnding(game: Game, ctx: CanvasRenderingContext2D) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 10, 0.92)';
+  ctx.fillRect(0, 0, game.width, game.height);
+
+  const cx = game.width / 2;
+  const scrollY = game.endingScrollY;
+  const h = game.height;
+
+  ctx.textAlign = 'center';
+
+  const credits: { text: string; font: string; color: string; gap: number }[] = [
+    { text: '2045', font: 'bold 48px monospace', color: '#ffcc00', gap: 80 },
+    { text: 'STELLAR ASSAULT', font: 'bold 28px monospace', color: '#ff8844', gap: 60 },
+    { text: '', font: '', color: '', gap: 40 },
+    { text: 'MISSION COMPLETE', font: 'bold 24px monospace', color: '#00ccff', gap: 50 },
+    { text: `FINAL SCORE: ${game.player.score.toLocaleString()}`, font: '18px monospace', color: '#ffffff', gap: 50 },
+    { text: '', font: '', color: '', gap: 30 },
+    { text: '- - -  C R E D I T S  - - -', font: 'bold 16px monospace', color: '#ffcc00', gap: 50 },
+    { text: '', font: '', color: '', gap: 20 },
+    { text: 'GAME DESIGN', font: 'bold 14px monospace', color: '#ff8844', gap: 25 },
+    { text: 'MYEONGJUN LEE', font: '14px monospace', color: '#cccccc', gap: 40 },
+    { text: 'PROGRAMMING', font: 'bold 14px monospace', color: '#ff8844', gap: 25 },
+    { text: 'MYEONGJUN LEE', font: '14px monospace', color: '#cccccc', gap: 20 },
+    { text: 'CLAUDE OPUS 4.6', font: '14px monospace', color: '#cccccc', gap: 40 },
+    { text: 'SOUND DESIGN', font: 'bold 14px monospace', color: '#ff8844', gap: 25 },
+    { text: 'PROCEDURAL AUDIO ENGINE', font: '14px monospace', color: '#cccccc', gap: 40 },
+    { text: 'ART DIRECTION', font: 'bold 14px monospace', color: '#ff8844', gap: 25 },
+    { text: 'PIXEL CANVAS RENDERING', font: '14px monospace', color: '#cccccc', gap: 40 },
+    { text: 'STAGE DESIGN', font: 'bold 14px monospace', color: '#ff8844', gap: 25 },
+    { text: 'STAGES 1 - 10', font: '14px monospace', color: '#cccccc', gap: 20 },
+    { text: 'HANDCRAFTED WITH CARE', font: '12px monospace', color: '#888888', gap: 40 },
+    { text: '', font: '', color: '', gap: 20 },
+    { text: 'POWERED BY', font: 'bold 14px monospace', color: '#ff8844', gap: 25 },
+    { text: 'NEXT.JS + HTML5 CANVAS', font: '14px monospace', color: '#cccccc', gap: 20 },
+    { text: 'DEPLOYED ON VERCEL', font: '14px monospace', color: '#cccccc', gap: 50 },
+    { text: '', font: '', color: '', gap: 30 },
+    { text: 'SPECIAL THANKS', font: 'bold 14px monospace', color: '#ff8844', gap: 25 },
+    { text: 'ALL PLAYERS WHO REACHED', font: '13px monospace', color: '#cccccc', gap: 18 },
+    { text: 'THE END OF THIS JOURNEY', font: '13px monospace', color: '#cccccc', gap: 40 },
+    { text: '', font: '', color: '', gap: 40 },
+    { text: 'THE OMEGA CORE IS DESTROYED.', font: '12px monospace', color: '#aaaaaa', gap: 20 },
+    { text: 'THE ENEMY FLEET CRUMBLES TO DUST.', font: '12px monospace', color: '#aaaaaa', gap: 20 },
+    { text: 'PEACE RETURNS TO THE GALAXY.', font: '12px monospace', color: '#aaaaaa', gap: 40 },
+    { text: '', font: '', color: '', gap: 30 },
+    { text: 'YOU ARE A LEGEND.', font: 'bold 20px monospace', color: '#ffcc00', gap: 60 },
+    { text: '', font: '', color: '', gap: 80 },
+    { text: 'THANK YOU FOR PLAYING', font: 'bold 22px monospace', color: '#00ccff', gap: 40 },
+    { text: '2 0 4 5', font: 'bold 36px monospace', color: '#ffcc00', gap: 0 },
+  ];
+
+  let y = h + 60 - scrollY;
+  for (const line of credits) {
+    if (y > -50 && y < h + 50 && line.text) {
+      ctx.font = line.font;
+      ctx.fillStyle = line.color;
+      // Fade in/out at edges
+      const fadeTop = Math.min(1, (y + 50) / 100);
+      const fadeBot = Math.min(1, (h + 50 - y) / 100);
+      ctx.globalAlpha = Math.max(0, Math.min(fadeTop, fadeBot));
+      ctx.fillText(line.text, cx, y);
+    }
+    y += line.gap;
+  }
+
+  // ESC hint at bottom
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = '#666666';
+  ctx.font = '11px monospace';
+  ctx.fillText('ESC - SKIP', cx, h - 15);
+
   ctx.restore();
 }

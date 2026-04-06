@@ -80,6 +80,7 @@ export class Game {
   highScore = 0;
   devMode = false;
   devSelectedStage = 0;
+  endingScrollY = 0;
   private destroyed = false;
 
   width: number;
@@ -145,6 +146,7 @@ export class Game {
       case 'victory': this.updateVictory(); break;
       case 'enterName': this.updateEnterName(dt); break;
       case 'devSelect': this.updateDevSelect(dt); break;
+      case 'ending': this.updateEnding(dt); break;
     }
 
     render(this);
@@ -246,7 +248,7 @@ export class Game {
   // ===== DEV STAGE SELECT =====
   private updateDevSelect(dt: number) {
     this.bg.update(dt);
-    const total = this.stageManager.totalStages;
+    const total = this.stageManager.totalStages + 1; // +1 for ending preview
 
     // Navigate with arrows / WASD
     if (this.input.wasPressed('ArrowUp') || this.input.wasPressed('KeyW')) {
@@ -258,14 +260,14 @@ export class Game {
       this.sound.playLetterChange();
     }
 
-    // Number keys for quick select
+    // Number keys for quick select (stages only)
     for (let i = 1; i <= 9; i++) {
-      if (this.input.wasPressed(`Digit${i}`) && i <= total) {
+      if (this.input.wasPressed(`Digit${i}`) && i <= this.stageManager.totalStages) {
         this.devSelectedStage = i - 1;
         this.sound.playLetterChange();
       }
     }
-    if (this.input.wasPressed('Digit0') && total >= 10) {
+    if (this.input.wasPressed('Digit0') && this.stageManager.totalStages >= 10) {
       this.devSelectedStage = 9;
       this.sound.playLetterChange();
     }
@@ -273,9 +275,15 @@ export class Game {
     // Confirm with Space/Enter
     if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
       this.sound.playMenuSelect();
-      this.stageManager.skipToStage(this.devSelectedStage);
-      this.startGame();
-      this.sound.startBgm('stage');
+      if (this.devSelectedStage >= this.stageManager.totalStages) {
+        // Ending preview
+        this.state = 'ending';
+        this.endingScrollY = 0;
+      } else {
+        this.stageManager.skipToStage(this.devSelectedStage);
+        this.startGame();
+        this.sound.startBgm('stage');
+      }
     }
 
     // Back to menu with Escape
@@ -789,6 +797,19 @@ export class Game {
   // ===== VICTORY =====
   private updateVictory() {
     if (this.input.wasPressed('Space') || this.input.wasPressed('Enter')) {
+      this.state = 'ending';
+      this.endingScrollY = 0;
+    }
+  }
+
+  // ===== ENDING CREDITS =====
+  private updateEnding(dt: number) {
+    this.bg.update(dt);
+    this.endingScrollY += dt * 30;
+
+    // Skip with Escape or wait until scroll finishes
+    const totalHeight = 700 + 60 * 20; // approximate credit content height
+    if (this.input.wasPressed('Escape') || this.endingScrollY > totalHeight) {
       if (this.isScoreTopTen()) {
         this.enterNameEntry('victory');
       } else {
