@@ -631,13 +631,8 @@ export class Game {
             }
             break;
           case 'bomb':
-            if (this.player.bombs >= 4) {
-              this.player.score += 500;
-              this.spawnFloatingText(ix, iy, '+500', '#ff4444');
-            } else {
-              this.player.bombs++;
-              this.spawnFloatingText(ix, iy, '+BOMB!', '#ff4444');
-            }
+            this.player.bombs++;
+            this.spawnFloatingText(ix, iy, '+BOMB!', '#ff4444');
             break;
           case 'speed':
             if (this.player.speed >= 7) {
@@ -745,7 +740,7 @@ export class Game {
       // Stage clear bonus: 5000 × stageNumber + HP restore + bomb
       const clearBonus = 5000 * (this.stageManager.currentStageIndex + 1);
       this.player.score += clearBonus;
-      this.player.bombs = Math.min(this.player.bombs + 1, 4);
+      this.player.bombs++;
       this.player.hp = Math.min(this.player.hp + 4, this.player.maxHp);
       this.stageManager.nextStage();
       // Register new stage's custom enemy types
