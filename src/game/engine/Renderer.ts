@@ -383,7 +383,7 @@ function renderHUD(game: Game, ctx: CanvasRenderingContext2D) {
   // Power level
   ctx.fillStyle = '#00ccff';
   ctx.font = 'bold 12px monospace';
-  ctx.fillText(`PWR ${game.player.power}/5`, 10, 74);
+  ctx.fillText(`PWR ${Math.max(1, game.player.power)}/5`, 10, 74);
 
   // Sound mute indicator / button
   if (game.input.isMobile) {
